@@ -1,0 +1,36 @@
+{
+  "name": "cuarto-impacto-sistema",
+  "version": "1.0.0",
+  "description": "Sistema de gestión — Certificación A · Empresa Aumentada",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js",
+    "setup": "node scripts/setup.js",
+    "crear-admin": "node scripts/crear-admin.js",
+    "deploy:web": "netlify deploy --prod --dir ../elcuartoimpacto-web",
+    "deploy:preview": "netlify deploy --dir ../elcuartoimpacto-web"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "googleapis": "^128.0.0",
+    "helmet": "^7.1.0",
+    "mercadopago": "^2.0.6",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.9.8",
+    "resend": "^3.4.0",
+    "stripe": "^14.14.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: cuarto-impacto-backend
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      # El resto de variables las cargás en el dashboard de Render
+      # (Settings → Environment)
