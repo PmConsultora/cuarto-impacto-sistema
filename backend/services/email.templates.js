@@ -180,4 +180,47 @@ function selloEmitido({ nombre_empresa, nivel, codigo_verificacion, fecha_vencim
   return { subject, html: layout({ title: subject, body, accent: info.color }), text: subject };
 }
 
-module.exports = { diagnosticoResultado, invitacionCertificar, selloEmitido };
+// ──────────────────────────────────────────────────
+// Email — Adhesión al Manifiesto
+// ──────────────────────────────────────────────────
+function adhesionConfirmada({ nombre, empresa, idioma = 'es', codigo_adhesion }) {
+  const es = idioma === 'es';
+  const verifyUrl = `https://elcuartoimpacto.com/adherentes?codigo=${codigo_adhesion}`;
+  const subject = es
+    ? `${nombre}, sos parte del Cuarto Impacto`
+    : `${nombre}, you are part of The Fourth Impact`;
+
+  const body = es ? `
+    <h1 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:30px;color:#0f2137;margin:0 0 16px;font-weight:600">Gracias por adherir al Manifiesto</h1>
+    <p style="font-size:16px;color:#3a3530;margin:0 0 24px">Hola, <strong>${nombre}</strong>.</p>
+    ${empresa ? `<p style="font-size:15px;color:#3a3530;margin:0 0 24px">Acabás de sumar a <strong>${empresa}</strong> al movimiento del Cuarto Impacto. Te enviamos adjunto el manifiesto oficial en PDF.</p>` :
+    `<p style="font-size:15px;color:#3a3530;margin:0 0 24px">Acabás de sumarte al movimiento del Cuarto Impacto. Te enviamos adjunto el manifiesto oficial en PDF.</p>`}
+
+    <div style="background:#f4eedf;border-left:3px solid #f4b822;padding:16px 20px;border-radius:4px;margin:24px 0">
+      <p style="font-size:13px;color:#76706a;letter-spacing:0.08em;text-transform:uppercase;font-weight:600;margin:0 0 6px">Código de adhesión</p>
+      <p style="font-family:monospace;font-size:15px;color:#0f2137;margin:0;letter-spacing:0.1em">${codigo_adhesion}</p>
+    </div>
+
+    <p style="font-size:15px;color:#3a3530;margin:0 0 16px">Tu adhesión queda registrada en el directorio público del movimiento. Cualquier persona puede verificarla con tu código en <a href="${verifyUrl}" style="color:#1e3a5f">elcuartoimpacto.com/adherentes</a>.</p>
+
+    <p style="font-size:14px;color:#76706a;margin:24px 0 0;font-style:italic">Bienvenida/o a una comunidad que cree que la responsabilidad digital es la cuarta dimensión del valor empresarial.<br><br>Paula Monte<br>Creadora del Cuarto Impacto</p>
+  ` : `
+    <h1 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:30px;color:#0f2137;margin:0 0 16px;font-weight:600">Thank you for joining the Manifesto</h1>
+    <p style="font-size:16px;color:#3a3530;margin:0 0 24px">Hi, <strong>${nombre}</strong>.</p>
+    ${empresa ? `<p style="font-size:15px;color:#3a3530;margin:0 0 24px">You have joined <strong>${empresa}</strong> to the Fourth Impact movement. The official manifesto is attached as PDF.</p>` :
+    `<p style="font-size:15px;color:#3a3530;margin:0 0 24px">You have joined the Fourth Impact movement. The official manifesto is attached as PDF.</p>`}
+
+    <div style="background:#f4eedf;border-left:3px solid #f4b822;padding:16px 20px;border-radius:4px;margin:24px 0">
+      <p style="font-size:13px;color:#76706a;letter-spacing:0.08em;text-transform:uppercase;font-weight:600;margin:0 0 6px">Adhesion code</p>
+      <p style="font-family:monospace;font-size:15px;color:#0f2137;margin:0;letter-spacing:0.1em">${codigo_adhesion}</p>
+    </div>
+
+    <p style="font-size:15px;color:#3a3530;margin:0 0 16px">Your adhesion is registered in the movement's public directory. Anyone can verify it with your code at <a href="${verifyUrl}" style="color:#1e3a5f">elcuartoimpacto.com/adherentes</a>.</p>
+
+    <p style="font-size:14px;color:#76706a;margin:24px 0 0;font-style:italic">Welcome to a community that believes digital responsibility is the fourth dimension of business value.<br><br>Paula Monte<br>Creator of The Fourth Impact</p>
+  `;
+
+  return { subject, html: layout({ title: subject, body, accent: '#c8920a' }), text: subject };
+}
+
+module.exports = { diagnosticoResultado, invitacionCertificar, selloEmitido, adhesionConfirmada };

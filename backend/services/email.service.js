@@ -16,14 +16,16 @@ function getClient() {
   return resend;
 }
 
-async function enviar({ to, subject, html, text }) {
+async function enviar({ to, subject, html, text, attachments }) {
   const client = getClient();
   if (!client) {
     console.warn('📧 Email no enviado (falta RESEND_API_KEY):', subject, '→', to);
     return { skipped: true };
   }
   const from = process.env.EMAIL_FROM || 'El Cuarto Impacto <info@elcuartoimpacto.com>';
-  const { data, error } = await client.emails.send({ from, to, subject, html, text });
+  const payload = { from, to, subject, html, text };
+  if (attachments && attachments.length) payload.attachments = attachments;
+  const { data, error } = await client.emails.send(payload);
   if (error) throw new Error(error.message || JSON.stringify(error));
   return data;
 }
@@ -49,10 +51,21 @@ async function emailSelloEmitido({ email, nombre_empresa, nivel, codigo_verifica
   return enviar({ to: email, subject, html, text });
 }
 
+// ──── Email: adhesión al manifiesto (con PDF adjunto) ────
+async function emailAdhesionConfirmada({ email, nombre, empresa, idioma = 'es', codigo_adhesion, pdfBase64 }) {
+  const { subject, html, text } = templates.adhesionConfirmada({ nombre, empresa, idioma, codigo_adhesion });
+  const filename = idioma === 'es'
+    ? 'Manifiesto_Cuarto_Impacto_VF26_ES.pdf'
+    : 'Fourth_Impact_Manifesto_VF26_EN.pdf';
+  const attachments = pdfBase64 ? [{ filename, content: pdfBase64 }] : undefined;
+  return enviar({ to: email, subject, html, text, attachments });
+}
+
 module.exports = {
   enviar,
   emailDiagnosticoResultado,
   emailInvitacionCertificar,
   emailNotificacionInterna,
   emailSelloEmitido,
+  emailAdhesionConfirmada,
 };
