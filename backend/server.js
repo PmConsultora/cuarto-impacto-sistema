@@ -45,6 +45,7 @@ app.use('/api/evidencias',      require('./routes/evidencias.routes'));
 app.use('/api/miembros-red',    require('./routes/miembros-red.routes'));
 app.use('/api/pagos',           require('./routes/pagos.routes'));
 app.use('/api/adhesiones',      require('./routes/adhesiones.routes'));
+app.use('/api/contactos',       require('./routes/contactos.routes'));
 // app.use('/api/miembros-red', require('./routes/miembros-red.routes'));
 // app.use('/api/pagos',        require('./routes/pagos.routes'));
 

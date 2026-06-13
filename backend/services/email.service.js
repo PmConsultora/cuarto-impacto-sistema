@@ -16,7 +16,7 @@ function getClient() {
   return resend;
 }
 
-async function enviar({ to, subject, html, text, attachments }) {
+async function enviar({ to, subject, html, text, attachments, replyTo }) {
   const client = getClient();
   if (!client) {
     console.warn('📧 Email no enviado (falta RESEND_API_KEY):', subject, '→', to);
@@ -25,6 +25,7 @@ async function enviar({ to, subject, html, text, attachments }) {
   const from = process.env.EMAIL_FROM || 'El Cuarto Impacto <info@elcuartoimpacto.com>';
   const payload = { from, to, subject, html, text };
   if (attachments && attachments.length) payload.attachments = attachments;
+  if (replyTo) payload.reply_to = replyTo;
   const { data, error } = await client.emails.send(payload);
   if (error) throw new Error(error.message || JSON.stringify(error));
   return data;
@@ -51,6 +52,19 @@ async function emailSelloEmitido({ email, nombre_empresa, nivel, codigo_verifica
   return enviar({ to: email, subject, html, text });
 }
 
+// ──── Email: contacto recibido (interno admin) ────
+async function emailContactoNuevoInterno({ nombre, email, empresa, telefono, asunto, mensaje, origen, idioma }) {
+  const adminEmail = process.env.ADMIN_NOTIFICATIONS_EMAIL || 'info@elcuartoimpacto.com';
+  const { subject, html, text } = templates.contactoNuevoInterno({ nombre, email, empresa, telefono, asunto, mensaje, origen, idioma });
+  return enviar({ to: adminEmail, subject, html, text, replyTo: email });
+}
+
+// ──── Email: confirmación al que envió el form ────
+async function emailContactoConfirmacion({ email, nombre, idioma = 'es' }) {
+  const { subject, html, text } = templates.contactoConfirmacion({ nombre, idioma });
+  return enviar({ to: email, subject, html, text });
+}
+
 // ──── Email: adhesión al manifiesto (con PDF adjunto) ────
 async function emailAdhesionConfirmada({ email, nombre, empresa, idioma = 'es', codigo_adhesion, pdfBase64 }) {
   const { subject, html, text } = templates.adhesionConfirmada({ nombre, empresa, idioma, codigo_adhesion });
@@ -68,4 +82,6 @@ module.exports = {
   emailNotificacionInterna,
   emailSelloEmitido,
   emailAdhesionConfirmada,
+  emailContactoNuevoInterno,
+  emailContactoConfirmacion,
 };

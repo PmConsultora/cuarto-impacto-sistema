@@ -33,6 +33,8 @@ const routes = {
   'red':           viewRed,
   'nuevo-miembro': viewNuevoMiembro,
   'pagos':         viewPagos,
+  'contactos':     viewContactos,
+  'contacto':      viewContactoDetalle,
 };
 
 async function route() {
@@ -66,15 +68,18 @@ window.addEventListener('hashchange', route);
 async function viewDashboard() {
   $main().innerHTML = `<div class="empty">Cargando…</div>`;
 
-  const [emp, diag, cert] = await Promise.all([
+  const [emp, diag, cert, cont] = await Promise.all([
     API.get('/empresas'),
     API.get('/diagnosticos'),
     API.get('/certificaciones'),
+    API.get('/contactos').catch(() => ({ data: [] })),
   ]);
 
   const empresas = emp.data || [];
   const diagnosticos = diag.data || [];
   const certificaciones = cert.data || [];
+  const contactos = cont.data || [];
+  const contactosNuevos = contactos.filter(c => c.estado === 'nuevo').length;
 
   const certificadas = empresas.filter(e => e.estado === 'certificada').length;
   const enProceso = certificaciones.filter(c => ['en_evaluacion','dictamen_emitido','pagada'].includes(c.estado)).length;
@@ -93,6 +98,10 @@ async function viewDashboard() {
       <div class="stat"><div class="num">${diagnosticos.length}</div><div class="label">Diagnósticos</div></div>
       <div class="stat"><div class="num">${enProceso}</div><div class="label">En evaluación</div></div>
       <div class="stat"><div class="num">${certificadas}</div><div class="label">Certificadas</div></div>
+      <div class="stat" ${contactosNuevos > 0 ? 'style="border-left-color:var(--error)"' : ''}>
+        <div class="num">${contactosNuevos}</div>
+        <div class="label">${contactosNuevos > 0 ? '⚠ Contactos sin leer' : 'Contactos sin leer'}</div>
+      </div>
     </div>
 
     <div class="card">
@@ -821,6 +830,156 @@ async function viewPagos() {
     </div>
   `;
 }
+
+// ── CONTACTOS ──
+const ESTADOS_CONTACTO = ['nuevo','en_seguimiento','convertido','descartado'];
+
+async function viewContactos() {
+  $main().innerHTML = `<div class="empty">Cargando…</div>`;
+  const { data } = await API.get('/contactos');
+  const contactos = data || [];
+
+  const nuevos = contactos.filter(c => c.estado === 'nuevo').length;
+  const seguimiento = contactos.filter(c => c.estado === 'en_seguimiento').length;
+  const convertidos = contactos.filter(c => c.estado === 'convertido').length;
+
+  $main().innerHTML = `
+    <div class="page-head">
+      <div>
+        <span class="eyebrow">Inbox de leads</span>
+        <h1>Contactos</h1>
+        <div class="sub">${contactos.length} ${contactos.length === 1 ? 'contacto recibido' : 'contactos recibidos'}</div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="num">${contactos.length}</div><div class="label">Total</div></div>
+      <div class="stat"><div class="num">${nuevos}</div><div class="label">Nuevos sin leer</div></div>
+      <div class="stat"><div class="num">${seguimiento}</div><div class="label">En seguimiento</div></div>
+      <div class="stat"><div class="num">${convertidos}</div><div class="label">Convertidos</div></div>
+    </div>
+
+    ${contactos.length === 0
+      ? `<div class="card empty">Cuando alguien complete el form de contacto del sitio, aparece acá.</div>`
+      : `<div class="card" style="padding:0;overflow:hidden">
+          <table>
+            <thead><tr>
+              <th>Fecha</th><th>Nombre</th><th>Email</th><th>Empresa</th><th>Origen</th><th>Estado</th>
+            </tr></thead>
+            <tbody>
+              ${contactos.map(c => `
+                <tr onclick="location.hash='#/contacto/${c.id}'">
+                  <td>${fmtDate(c.created_at)}</td>
+                  <td><strong>${c.nombre}</strong></td>
+                  <td>${c.email}</td>
+                  <td>${c.empresa || '—'}</td>
+                  <td><span class="estado">${c.origen || 'web'}</span></td>
+                  <td><span class="estado estado-${c.estado === 'convertido' ? 'certificada' : (c.estado === 'descartado' ? 'rechazada' : (c.estado === 'en_seguimiento' ? 'en_evaluacion' : ''))}">${c.estado.replace('_',' ')}</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>`}
+  `;
+}
+
+async function viewContactoDetalle([id]) {
+  if (!id) return location.hash = '#/contactos';
+  $main().innerHTML = `<div class="empty">Cargando…</div>`;
+
+  let c;
+  try {
+    const { data } = await API.get(`/contactos/${id}`);
+    c = data;
+  } catch (err) {
+    return $main().innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+  }
+
+  $main().innerHTML = `
+    <div class="page-head">
+      <div>
+        <span class="eyebrow">Contacto</span>
+        <h1>${c.nombre}</h1>
+        <div class="sub">
+          <span class="estado estado-${c.estado === 'convertido' ? 'certificada' : (c.estado === 'descartado' ? 'rechazada' : (c.estado === 'en_seguimiento' ? 'en_evaluacion' : ''))}">${c.estado.replace('_',' ')}</span>
+          <span style="margin-left:0.5rem;color:var(--muted)">recibido ${fmtDate(c.created_at)} · ${c.idioma === 'en' ? '🇬🇧' : '🇪🇸'} · origen: ${c.origen || 'web'}</span>
+        </div>
+      </div>
+      <a href="#/contactos" class="btn btn-outline">← Volver</a>
+    </div>
+
+    <div id="alert"></div>
+
+    <div class="grid-2">
+      <div>
+        <div class="card">
+          <h3 style="margin-bottom:1rem">Mensaje</h3>
+          <div style="background:var(--paper);padding:1.25rem;border-radius:4px;border:1px solid var(--border);white-space:pre-wrap;font-family:var(--serif);font-size:1.05rem;line-height:1.6;color:var(--ink)">${(c.mensaje || '').replace(/[<>]/g, c => ({'<':'&lt;','>':'&gt;'}[c]))}</div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-bottom:1rem">Notas internas</h3>
+          <div class="field">
+            <textarea id="notas-cont" rows="5" placeholder="Anotá observaciones, próximos pasos, etc.">${c.notas_internas || ''}</textarea>
+          </div>
+          <button class="btn btn-primary" onclick="guardarNotasContacto('${c.id}')">Guardar notas</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h3 style="margin-bottom:1rem">Datos</h3>
+          <dl class="dl">
+            <dt>Email</dt><dd><a href="mailto:${c.email}">${c.email}</a></dd>
+            <dt>Empresa</dt><dd>${c.empresa || '—'}</dd>
+            <dt>Teléfono</dt><dd>${c.telefono || '—'}</dd>
+            <dt>Asunto</dt><dd>${c.asunto || '—'}</dd>
+            <dt>Idioma</dt><dd>${c.idioma === 'en' ? 'Inglés' : 'Español'}</dd>
+            <dt>Origen</dt><dd>${c.origen || '—'}</dd>
+            <dt>Email enviado</dt><dd>${c.email_enviado ? '✓ Sí' : '✗ No'}</dd>
+          </dl>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-bottom:1rem">Cambiar estado</h3>
+          <div class="field">
+            <select id="nuevo-estado-cont">
+              ${ESTADOS_CONTACTO.map(e => `<option value="${e}" ${e === c.estado ? 'selected' : ''}>${e.replace('_',' ')}</option>`).join('')}
+            </select>
+          </div>
+          <button class="btn btn-primary btn-block" onclick="cambiarEstadoContacto('${c.id}')">Actualizar estado</button>
+
+          <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border)">
+            <a href="mailto:${c.email}?subject=Re:%20Contacto%20El%20Cuarto%20Impacto" class="btn btn-gold btn-block">
+              ✉ Responder por mail
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+window.cambiarEstadoContacto = async (id) => {
+  const estado = document.getElementById('nuevo-estado-cont').value;
+  try {
+    await API.patch(`/contactos/${id}`, { estado });
+    location.reload();
+  } catch (err) {
+    document.getElementById('alert').innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+  }
+};
+
+window.guardarNotasContacto = async (id) => {
+  const notas_internas = document.getElementById('notas-cont').value;
+  try {
+    await API.patch(`/contactos/${id}`, { notas_internas });
+    document.getElementById('alert').innerHTML = `<div class="alert alert-success">Notas guardadas</div>`;
+    setTimeout(() => document.getElementById('alert').innerHTML = '', 2500);
+  } catch (err) {
+    document.getElementById('alert').innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+  }
+};
 
 function tablaDiagnosticos(diagnosticos) {
   return `

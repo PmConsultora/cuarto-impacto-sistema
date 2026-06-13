@@ -223,4 +223,81 @@ function adhesionConfirmada({ nombre, empresa, idioma = 'es', codigo_adhesion })
   return { subject, html: layout({ title: subject, body, accent: '#c8920a' }), text: subject };
 }
 
-module.exports = { diagnosticoResultado, invitacionCertificar, selloEmitido, adhesionConfirmada };
+// ──────────────────────────────────────────────────
+// Email — Contacto recibido (al equipo, interno)
+// ──────────────────────────────────────────────────
+function contactoNuevoInterno({ nombre, email, empresa, telefono, asunto, mensaje, origen, idioma }) {
+  const subject = `[CI] Nuevo contacto · ${nombre}${empresa ? ' · ' + empresa : ''}`;
+
+  const body = `
+    <div style="background:#f4eedf;padding:14px 18px;border-radius:4px;margin-bottom:24px;border-left:3px solid #f4b822">
+      <div style="font-size:11px;color:#76706a;letter-spacing:0.12em;text-transform:uppercase;font-weight:600;margin-bottom:4px">Origen</div>
+      <div style="font-size:14px;color:#0f2137">${origen || 'web'} · ${idioma === 'en' ? 'EN' : 'ES'}</div>
+    </div>
+
+    <h2 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;color:#0f2137;margin:0 0 20px;font-weight:600">Datos del contacto</h2>
+
+    <table cellspacing="0" cellpadding="0" border="0" style="width:100%;font-size:14px;color:#3a3530">
+      <tr><td style="padding:6px 0;width:130px;font-weight:600;color:#76706a">Nombre</td><td style="padding:6px 0">${nombre}</td></tr>
+      <tr><td style="padding:6px 0;font-weight:600;color:#76706a">Email</td><td style="padding:6px 0"><a href="mailto:${email}" style="color:#1e3a5f">${email}</a></td></tr>
+      ${empresa ? `<tr><td style="padding:6px 0;font-weight:600;color:#76706a">Empresa</td><td style="padding:6px 0">${empresa}</td></tr>` : ''}
+      ${telefono ? `<tr><td style="padding:6px 0;font-weight:600;color:#76706a">Teléfono</td><td style="padding:6px 0">${telefono}</td></tr>` : ''}
+      ${asunto ? `<tr><td style="padding:6px 0;font-weight:600;color:#76706a">Asunto</td><td style="padding:6px 0">${asunto}</td></tr>` : ''}
+    </table>
+
+    <h2 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;color:#0f2137;margin:28px 0 12px;font-weight:600">Mensaje</h2>
+    <div style="background:white;border:1px solid #ece5d5;padding:18px;border-radius:4px;color:#3a3530;line-height:1.6;white-space:pre-wrap">${escapeHtml(mensaje)}</div>
+
+    <div style="margin-top:32px;text-align:center">
+      <a href="mailto:${email}?subject=Re: Contacto El Cuarto Impacto" style="display:inline-block;background:#0f2137;color:#faf8f3;padding:12px 24px;border-radius:4px;font-weight:600;font-size:14px;text-decoration:none">Responder a ${nombre.split(' ')[0]}</a>
+    </div>
+  `;
+
+  return { subject, html: layout({ title: subject, body, accent: '#c8920a' }), text: `Nuevo contacto:\n${nombre} <${email}>${empresa ? ' · ' + empresa : ''}\n\n${mensaje}` };
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ──────────────────────────────────────────────────
+// Email — Confirmación al que envió el form
+// ──────────────────────────────────────────────────
+function contactoConfirmacion({ nombre, idioma = 'es' }) {
+  const es = idioma === 'es';
+  const subject = es
+    ? `Recibimos tu mensaje · El Cuarto Impacto`
+    : `We received your message · The Fourth Impact`;
+
+  const body = es ? `
+    <h1 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;color:#0f2137;margin:0 0 16px;font-weight:600">Gracias, ${nombre.split(' ')[0]}.</h1>
+    <p style="font-size:15px;color:#3a3530;margin:0 0 16px">Recibimos tu mensaje y te vamos a responder en las próximas 24-48 horas hábiles.</p>
+    <p style="font-size:15px;color:#3a3530;margin:0 0 24px">Mientras tanto, te invitamos a conocer más sobre el movimiento:</p>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin:24px 0">
+      <a href="https://elcuartoimpacto.com/adherir.html" style="display:inline-block;background:#f4b822;color:#0f2137;padding:12px 22px;border-radius:4px;font-weight:600;font-size:13px;text-decoration:none">Adherir al Manifiesto →</a>
+      <a href="https://elcuartoimpacto.com/diagnostico.html" style="display:inline-block;background:transparent;color:#1e3a5f;padding:12px 22px;border-radius:4px;font-weight:600;font-size:13px;text-decoration:none;border:1.5px solid #ece5d5">Hacer el diagnóstico →</a>
+    </div>
+
+    <p style="font-size:14px;color:#76706a;margin:32px 0 0;font-style:italic">Paula Monte<br>Creadora del Cuarto Impacto</p>
+  ` : `
+    <h1 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;color:#0f2137;margin:0 0 16px;font-weight:600">Thank you, ${nombre.split(' ')[0]}.</h1>
+    <p style="font-size:15px;color:#3a3530;margin:0 0 16px">We received your message and will reply within the next 24-48 business hours.</p>
+    <p style="font-size:15px;color:#3a3530;margin:0 0 24px">In the meantime, explore the movement:</p>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin:24px 0">
+      <a href="https://elcuartoimpacto.com/adherir.html?lang=en" style="display:inline-block;background:#f4b822;color:#0f2137;padding:12px 22px;border-radius:4px;font-weight:600;font-size:13px;text-decoration:none">Sign the Manifesto →</a>
+      <a href="https://elcuartoimpacto.com/diagnostico.html?lang=en" style="display:inline-block;background:transparent;color:#1e3a5f;padding:12px 22px;border-radius:4px;font-weight:600;font-size:13px;text-decoration:none;border:1.5px solid #ece5d5">Take the diagnostic →</a>
+    </div>
+
+    <p style="font-size:14px;color:#76706a;margin:32px 0 0;font-style:italic">Paula Monte<br>Creator of The Fourth Impact</p>
+  `;
+
+  return { subject, html: layout({ title: subject, body, accent: '#c8920a' }), text: subject };
+}
+
+module.exports = {
+  diagnosticoResultado, invitacionCertificar, selloEmitido, adhesionConfirmada,
+  contactoNuevoInterno, contactoConfirmacion,
+};
