@@ -8,6 +8,8 @@
     "dev": "nodemon backend/server.js",
     "setup": "node scripts/setup.js",
     "crear-admin": "node scripts/crear-admin.js",
+    "sync-drive": "node scripts/sync-drive.js",
+    "sync-drive:dry": "node scripts/sync-drive.js --dry-run",
     "deploy:web": "netlify deploy --prod --dir ../elcuartoimpacto-web",
     "deploy:preview": "netlify deploy --dir ../elcuartoimpacto-web"
   },
