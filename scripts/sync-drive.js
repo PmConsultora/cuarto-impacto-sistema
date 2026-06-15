@@ -37,6 +37,8 @@ const FOLDERS = {
 // ──────────────────────────────────────────────
 // Definición de qué se sube y dónde
 // ──────────────────────────────────────────────
+const ACCESOS_DIR = path.join(PROJECT_ROOT, 'Accesos y Credenciales');
+
 const SYNC_PLAN = [
   // ── Manifiestos oficiales → Modelo de Negocio
   {
@@ -46,6 +48,16 @@ const SYNC_PLAN = [
       { dir: MANIFIESTOS_DIR, pattern: /\.(docx|pdf)$/i },
     ],
     description: 'Manifiestos oficiales VF26 (ES + EN, Word + PDF)',
+  },
+
+  // ── Accesos y credenciales (referencias, no contraseñas) → Modelo de Negocio
+  {
+    section: 'modelo',
+    subfolder: 'Accesos y Credenciales',
+    sources: [
+      { dir: ACCESOS_DIR, pattern: /\.(md|pdf|html)$/i },
+    ],
+    description: 'Documento maestro con URLs y datos de acceso a todos los servicios',
   },
 
   // ── Sitio web público → Web y Diagnóstico
