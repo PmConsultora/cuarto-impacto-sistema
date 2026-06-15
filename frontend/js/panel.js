@@ -35,6 +35,7 @@ const routes = {
   'pagos':         viewPagos,
   'contactos':     viewContactos,
   'contacto':      viewContactoDetalle,
+  'reportes':      viewReportes,
 };
 
 async function route() {
@@ -997,4 +998,253 @@ function tablaDiagnosticos(diagnosticos) {
       `).join('')}</tbody>
     </table>
   `;
+}
+
+// ── REPORTES (M6 Dashboard) ──────────────────────────────────────
+const CHART_COLORS = {
+  navy: '#0f2137',
+  navyMid: '#1e3a5f',
+  gold: '#c8920a',
+  goldb: '#f4b822',
+  celeste: '#c8ddee',
+  paperWarm: '#f4eedf',
+  success: '#047857',
+  error: '#b91c1c',
+  warn: '#d97706',
+  a1: '#89366C', a2: '#C8920A', a3: '#1E3A5F', a4: '#2D7DD2', a5: '#0A9E6E',
+};
+
+const __charts = {};
+
+function destroyChart(id) {
+  if (__charts[id]) {
+    try { __charts[id].destroy(); } catch (e) {}
+    delete __charts[id];
+  }
+}
+
+async function viewReportes() {
+  $main().innerHTML = `<div class="empty">Cargando métricas…</div>`;
+
+  let financiero = {}, embudo = {}, comunidad = {};
+  try {
+    const [f, e, c] = await Promise.all([
+      API.get('/stats/financiero'),
+      API.get('/stats/embudo'),
+      API.get('/stats/comunidad'),
+    ]);
+    financiero = f.data || {};
+    embudo = e.data || {};
+    comunidad = c.data || {};
+  } catch (err) {
+    return $main().innerHTML = `<div class="alert alert-error">No pudimos cargar las métricas: ${err.message}</div>`;
+  }
+
+  const totalUSD = financiero.total?.USD || 0;
+  const totalARS = financiero.total?.ARS || 0;
+  const mesActUSD = financiero.mesActual?.USD || 0;
+  const mesAntUSD = financiero.mesAnterior?.USD || 0;
+  const deltaUSD = mesAntUSD > 0 ? Math.round(((mesActUSD - mesAntUSD) / mesAntUSD) * 100) : (mesActUSD > 0 ? 100 : 0);
+
+  const adhTotal = comunidad.adherentes?.total || 0;
+  const adhPaises = comunidad.adherentes?.paises_count || 0;
+  const contactosNuevos = comunidad.contactos?.porEstado?.nuevo || 0;
+
+  const pasos = embudo.embudo || [];
+  const maxVal = Math.max(1, ...pasos.map(p => p.valor));
+
+  $main().innerHTML = `
+    <div class="page-head">
+      <div>
+        <span class="eyebrow">Métricas y análisis</span>
+        <h1>Reportes</h1>
+        <div class="sub">Estado del negocio, comunidad y conversión</div>
+      </div>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi kpi-success">
+        <div class="kpi-eyebrow">Cobrado total</div>
+        <div class="kpi-num">USD ${totalUSD.toLocaleString()}</div>
+        <div class="kpi-sub">+ ARS ${totalARS.toLocaleString()}</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-eyebrow">Este mes (USD)</div>
+        <div class="kpi-num">USD ${mesActUSD.toLocaleString()}</div>
+        ${mesAntUSD > 0 || mesActUSD > 0 ? `<span class="kpi-delta ${deltaUSD > 0 ? 'kpi-delta-up' : (deltaUSD < 0 ? 'kpi-delta-down' : 'kpi-delta-flat')}">${deltaUSD >= 0 ? '↑' : '↓'} ${Math.abs(deltaUSD)}% vs mes anterior</span>` : '<div class="kpi-sub">sin datos previos</div>'}
+      </div>
+      <div class="kpi kpi-warn">
+        <div class="kpi-eyebrow">Pendiente de cobro</div>
+        <div class="kpi-num">USD ${(financiero.pendiente?.USD || 0).toLocaleString()}</div>
+        <div class="kpi-sub">${financiero.cantidad?.pendientes || 0} transacciones</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-eyebrow">Adherentes al Manifiesto</div>
+        <div class="kpi-num">${adhTotal}</div>
+        <div class="kpi-sub">en ${adhPaises} ${adhPaises === 1 ? 'país' : 'países'}</div>
+      </div>
+      <div class="kpi ${contactosNuevos > 0 ? 'kpi-error' : ''}">
+        <div class="kpi-eyebrow">${contactosNuevos > 0 ? '⚠ Contactos sin leer' : 'Inbox de leads'}</div>
+        <div class="kpi-num">${contactosNuevos}</div>
+        <div class="kpi-sub">${comunidad.contactos?.total || 0} contactos totales</div>
+      </div>
+    </div>
+
+    <div class="chart-box" style="margin-bottom:1.5rem">
+      <h3>Embudo de conversión</h3>
+      ${pasos.map((p, i) => `
+        <div class="embudo-row">
+          <div class="paso">${p.paso}</div>
+          <div class="barra"><div class="barra-fill" style="width:${(p.valor / maxVal) * 100}%"></div></div>
+          <div class="valor">${p.valor}</div>
+          ${i > 0 && pasos[i-1].valor > 0 ? `<span class="embudo-conv">${Math.round((p.valor / pasos[i-1].valor) * 100)}%</span>` : ''}
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="reports-grid">
+      <div class="chart-box">
+        <h3>Ingresos por mes (USD)</h3>
+        <div class="chart-container"><canvas id="chart-ingresos"></canvas></div>
+      </div>
+      <div class="chart-box">
+        <h3>Crecimiento de la comunidad</h3>
+        <div class="chart-container"><canvas id="chart-adherentes"></canvas></div>
+      </div>
+      <div class="chart-box">
+        <h3>Empresas certificadas por nivel</h3>
+        <div class="chart-container"><canvas id="chart-niveles"></canvas></div>
+      </div>
+      <div class="chart-box">
+        <h3>Diagnósticos por nivel resultado</h3>
+        <div class="chart-container"><canvas id="chart-diag-niveles"></canvas></div>
+      </div>
+      <div class="chart-box">
+        <h3>Idiomas (mix ES / EN)</h3>
+        <div class="chart-container"><canvas id="chart-idiomas"></canvas></div>
+      </div>
+      <div class="chart-box">
+        <h3>Top países (adherentes)</h3>
+        <div class="chart-container"><canvas id="chart-paises"></canvas></div>
+      </div>
+    </div>
+  `;
+
+  // Render gráficos
+  destroyChart('ingresos');
+  const serie = financiero.serie || [];
+  __charts.ingresos = new Chart(document.getElementById('chart-ingresos'), {
+    type: 'bar',
+    data: {
+      labels: serie.length ? serie.map(s => s.mes) : ['—'],
+      datasets: [
+        { label: 'USD', data: serie.map(s => s.USD), backgroundColor: CHART_COLORS.goldb, borderRadius: 4 },
+        { label: 'ARS (en miles)', data: serie.map(s => s.ARS / 1000), backgroundColor: CHART_COLORS.celeste, borderRadius: 4, hidden: serie.every(s => s.ARS === 0) },
+      ],
+    },
+    options: chartOpts({}),
+  });
+
+  destroyChart('adherentes');
+  const adhSerie = comunidad.adherentes?.serie || [];
+  __charts.adherentes = new Chart(document.getElementById('chart-adherentes'), {
+    type: 'line',
+    data: {
+      labels: adhSerie.length ? adhSerie.map(s => s.mes) : ['—'],
+      datasets: [{
+        label: 'Adherentes',
+        data: adhSerie.map(s => s.cantidad),
+        borderColor: CHART_COLORS.gold,
+        backgroundColor: 'rgba(244,184,34,0.15)',
+        fill: true, tension: 0.35, borderWidth: 2.5,
+        pointBackgroundColor: CHART_COLORS.gold, pointRadius: 4,
+      }],
+    },
+    options: chartOpts({ noLegend: true }),
+  });
+
+  destroyChart('niveles');
+  const niveles = embudo.porNivel || { A1:0, A2:0, A3:0, A4:0, A5:0 };
+  __charts.niveles = new Chart(document.getElementById('chart-niveles'), {
+    type: 'doughnut',
+    data: {
+      labels: ['A1 Consciente', 'A2 Adoptante', 'A3 Responsable', 'A4 Transformadora', 'A5 Referente'],
+      datasets: [{
+        data: [niveles.A1, niveles.A2, niveles.A3, niveles.A4, niveles.A5],
+        backgroundColor: [CHART_COLORS.a1, CHART_COLORS.a2, CHART_COLORS.a3, CHART_COLORS.a4, CHART_COLORS.a5],
+        borderColor: 'white', borderWidth: 2,
+      }],
+    },
+    options: chartOpts({ doughnut: true }),
+  });
+
+  destroyChart('diagNiveles');
+  const diagN = comunidad.diagnosticos?.porNivel || { A1:0, A2:0, A3:0, A4:0, A5:0 };
+  __charts.diagNiveles = new Chart(document.getElementById('chart-diag-niveles'), {
+    type: 'bar',
+    data: {
+      labels: ['A1', 'A2', 'A3', 'A4', 'A5'],
+      datasets: [{
+        label: 'Diagnósticos',
+        data: [diagN.A1, diagN.A2, diagN.A3, diagN.A4, diagN.A5],
+        backgroundColor: [CHART_COLORS.a1, CHART_COLORS.a2, CHART_COLORS.a3, CHART_COLORS.a4, CHART_COLORS.a5],
+        borderRadius: 4,
+      }],
+    },
+    options: chartOpts({ noLegend: true }),
+  });
+
+  destroyChart('idiomas');
+  const idiomas = comunidad.idiomas || { es: 0, en: 0 };
+  __charts.idiomas = new Chart(document.getElementById('chart-idiomas'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Español', 'English'],
+      datasets: [{
+        data: [idiomas.es, idiomas.en],
+        backgroundColor: [CHART_COLORS.navy, CHART_COLORS.goldb],
+        borderColor: 'white', borderWidth: 2,
+      }],
+    },
+    options: chartOpts({ doughnut: true }),
+  });
+
+  destroyChart('paises');
+  const paises = (comunidad.adherentes?.porPais || []).slice(0, 10);
+  __charts.paises = new Chart(document.getElementById('chart-paises'), {
+    type: 'bar',
+    data: {
+      labels: paises.length ? paises.map(p => p.pais) : ['—'],
+      datasets: [{
+        label: 'Adherentes',
+        data: paises.map(p => p.cantidad),
+        backgroundColor: CHART_COLORS.navyMid,
+        borderRadius: 4,
+      }],
+    },
+    options: chartOpts({ horizontal: true, noLegend: true }),
+  });
+}
+
+function chartOpts({ doughnut, horizontal, noLegend } = {}) {
+  if (doughnut) {
+    return {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11, family: "'DM Sans', system-ui, sans-serif" }, color: '#3a3530', padding: 12, boxWidth: 12 } },
+      },
+      cutout: '60%',
+    };
+  }
+  return {
+    indexAxis: horizontal ? 'y' : 'x',
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: !noLegend, position: 'bottom', labels: { font: { size: 11, family: "'DM Sans', system-ui, sans-serif" }, color: '#3a3530', padding: 12, boxWidth: 12 } },
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#76706a', font: { size: 10 } } },
+      y: { grid: { color: 'rgba(15,33,55,0.05)' }, ticks: { color: '#76706a', font: { size: 10 } } },
+    },
+  };
 }

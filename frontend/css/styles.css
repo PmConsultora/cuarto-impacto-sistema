@@ -703,6 +703,138 @@ tbody tr:last-child td { border-bottom: none; }
   display: block;
 }
 
+/* ── REPORTES (M6 Dashboard) ──────────────────────────────────────── */
+.reports-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+@media (max-width: 900px) { .reports-grid { grid-template-columns: 1fr; } }
+
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.kpi {
+  background: white;
+  padding: 1.25rem 1.4rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--shadow-xs);
+  position: relative;
+  overflow: hidden;
+}
+.kpi::before {
+  content: ""; position: absolute; top: 0; left: 0; width: 3px; height: 100%;
+  background: var(--goldb);
+}
+.kpi.kpi-success::before { background: var(--success); }
+.kpi.kpi-warn::before { background: var(--warn); }
+.kpi.kpi-error::before { background: var(--error); }
+.kpi-eyebrow {
+  font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--muted); font-weight: 600; margin-bottom: 0.4rem;
+}
+.kpi-num {
+  font-family: var(--serif); font-size: 1.95rem; color: var(--navy);
+  font-weight: 600; line-height: 1; margin-bottom: 0.25rem; letter-spacing: -0.02em;
+}
+.kpi-sub {
+  font-size: 0.78rem; color: var(--muted); margin-top: 0.2rem;
+}
+.kpi-delta {
+  display: inline-block; font-size: 0.7rem; padding: 0.15rem 0.5rem;
+  border-radius: 20px; font-weight: 600; margin-top: 0.3rem;
+}
+.kpi-delta-up   { background: var(--success-bg); color: var(--success); }
+.kpi-delta-down { background: var(--error-bg);   color: var(--error); }
+.kpi-delta-flat { background: var(--celeste-bg); color: var(--navy-mid); }
+
+.chart-box {
+  background: white;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-xs);
+}
+.chart-box h3 {
+  font-family: var(--serif);
+  font-size: 1.15rem;
+  color: var(--navy);
+  margin-bottom: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.chart-box h3::before {
+  content: ""; width: 4px; height: 18px;
+  background: var(--goldb); border-radius: 2px;
+}
+.chart-container {
+  position: relative;
+  height: 260px;
+}
+.chart-container.tall { height: 340px; }
+
+.embudo-row {
+  display: flex; align-items: center; gap: 0.8rem;
+  padding: 0.7rem 0.9rem; margin-bottom: 0.6rem;
+  background: var(--paper); border-radius: var(--radius-sm);
+  border-left: 3px solid var(--goldb); position: relative;
+}
+.embudo-row .paso {
+  font-size: 0.85rem; color: var(--ink-soft); font-weight: 600;
+  min-width: 180px;
+}
+.embudo-row .barra {
+  flex: 1; height: 22px; background: var(--paper-warm); border-radius: 11px;
+  overflow: hidden; position: relative;
+}
+.embudo-row .barra-fill {
+  height: 100%; background: linear-gradient(90deg, var(--gold), var(--goldb));
+  border-radius: 11px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.embudo-row .valor {
+  font-family: var(--serif); font-size: 1.1rem; color: var(--navy);
+  font-weight: 600; min-width: 60px; text-align: right;
+}
+.embudo-conv {
+  display: inline-block; margin-left: 0.5rem; font-size: 0.7rem;
+  background: var(--celeste-bg); color: var(--navy-mid);
+  padding: 0.2rem 0.55rem; border-radius: 20px; font-weight: 600;
+}
+
+.legend-row {
+  display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.75rem;
+  font-size: 0.78rem; color: var(--muted);
+}
+.legend-row .dot {
+  display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+  margin-right: 0.4rem; vertical-align: middle;
+}
+
+.toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; margin-bottom: 1.5rem; padding: 0.8rem 1rem;
+  background: var(--paper-warm); border-radius: var(--radius);
+}
+.toolbar .seg {
+  display: inline-flex; background: white; border-radius: 6px;
+  border: 1px solid var(--border); padding: 2px;
+}
+.toolbar .seg button {
+  border: none; background: transparent; padding: 0.4rem 0.8rem;
+  font-size: 0.78rem; color: var(--muted); cursor: pointer; border-radius: 4px;
+  font-family: var(--sans); font-weight: 600; transition: all var(--t);
+}
+.toolbar .seg button.active {
+  background: var(--navy); color: white;
+}
+
 /* ── ANIMATIONS ──────────────────────────────────────── */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
