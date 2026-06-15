@@ -224,6 +224,49 @@ function adhesionConfirmada({ nombre, empresa, idioma = 'es', codigo_adhesion })
 }
 
 // ──────────────────────────────────────────────────
+// Email — Notificación interna genérica al admin (branded)
+// Usado para alertas de adhesión, diagnóstico, etc.
+// ──────────────────────────────────────────────────
+function notificacionInterna({ asunto, mensaje, datos }) {
+  const subject = `[CI] ${asunto}`;
+
+  // Formatear datos como filas de tabla legibles
+  const filasHtml = Object.entries(datos || {})
+    .filter(([_, v]) => v !== null && v !== undefined && v !== '')
+    .map(([k, v]) => {
+      const label = k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      let value = v;
+      if (typeof v === 'object') value = JSON.stringify(v);
+      const isLink = typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://'));
+      const valueHtml = isLink ? `<a href="${v}" style="color:#1e3a5f">${v}</a>` : String(value);
+      return `<tr><td style="padding:8px 14px;width:130px;font-weight:600;color:#76706a;font-size:12px;text-transform:uppercase;letter-spacing:0.06em;vertical-align:top">${label}</td><td style="padding:8px 14px;color:#3a3530;font-size:14px;vertical-align:top">${valueHtml}</td></tr>`;
+    })
+    .join('');
+
+  const body = `
+    <div style="background:#f4eedf;padding:12px 18px;border-radius:4px;margin-bottom:24px;border-left:3px solid #f4b822">
+      <div style="font-size:10px;color:#76706a;letter-spacing:0.15em;text-transform:uppercase;font-weight:600;margin-bottom:4px">Notificación del sistema</div>
+      <div style="font-size:14px;color:#0f2137">${asunto}</div>
+    </div>
+
+    ${mensaje ? `<p style="font-size:15px;color:#3a3530;margin:0 0 20px;line-height:1.55">${mensaje}</p>` : ''}
+
+    ${filasHtml ? `
+      <h3 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;color:#0f2137;margin:8px 0 12px;font-weight:600">Detalles</h3>
+      <table cellspacing="0" cellpadding="0" border="0" style="width:100%;border:1px solid #ece5d5;border-radius:4px;border-collapse:separate">
+        ${filasHtml}
+      </table>
+    ` : ''}
+
+    <div style="margin-top:32px;padding-top:16px;border-top:1px solid #ece5d5;text-align:center">
+      <a href="https://cuarto-impacto-sistema-1.onrender.com" style="display:inline-block;background:#0f2137;color:#faf8f3;padding:11px 22px;border-radius:4px;font-weight:600;font-size:13px;text-decoration:none;letter-spacing:0.02em">Ver en el panel admin →</a>
+    </div>
+  `;
+
+  return { subject, html: layout({ title: subject, body, accent: '#c8920a' }), text: `${asunto}\n\n${mensaje || ''}\n\n${JSON.stringify(datos, null, 2)}` };
+}
+
+// ──────────────────────────────────────────────────
 // Email — Contacto recibido (al equipo, interno)
 // ──────────────────────────────────────────────────
 function contactoNuevoInterno({ nombre, email, empresa, telefono, asunto, mensaje, origen, idioma }) {
@@ -299,5 +342,5 @@ function contactoConfirmacion({ nombre, idioma = 'es' }) {
 
 module.exports = {
   diagnosticoResultado, invitacionCertificar, selloEmitido, adhesionConfirmada,
-  contactoNuevoInterno, contactoConfirmacion,
+  contactoNuevoInterno, contactoConfirmacion, notificacionInterna,
 };

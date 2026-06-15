@@ -43,8 +43,8 @@ async function emailInvitacionCertificar({ email, nombre_empresa, nivel_resultad
 
 async function emailNotificacionInterna({ asunto, mensaje, datos }) {
   const adminEmail = process.env.ADMIN_NOTIFICATIONS_EMAIL || 'info@elcuartoimpacto.com';
-  const html = `<h2>${asunto}</h2><p>${mensaje}</p><pre>${JSON.stringify(datos, null, 2)}</pre>`;
-  return enviar({ to: adminEmail, subject: `[CI] ${asunto}`, html });
+  const { subject, html, text } = templates.notificacionInterna({ asunto, mensaje, datos });
+  return enviar({ to: adminEmail, subject, html, text });
 }
 
 async function emailSelloEmitido({ email, nombre_empresa, nivel, codigo_verificacion, fecha_vencimiento }) {
