@@ -38,6 +38,7 @@ const FOLDERS = {
 // Definición de qué se sube y dónde
 // ──────────────────────────────────────────────
 const ACCESOS_DIR = path.join(PROJECT_ROOT, 'Accesos y Credenciales');
+const POSTULACIONES_DIR = path.join(PROJECT_ROOT, 'Postulaciones y Convocatorias');
 
 const SYNC_PLAN = [
   // ── Manifiestos oficiales → Modelo de Negocio
@@ -58,6 +59,16 @@ const SYNC_PLAN = [
       { dir: ACCESOS_DIR, pattern: /\.(md|pdf|html)$/i },
     ],
     description: 'Documento maestro con URLs y datos de acceso a todos los servicios',
+  },
+
+  // ── Postulaciones y convocatorias → Modelo de Negocio
+  {
+    section: 'modelo',
+    subfolder: 'Postulaciones y Convocatorias',
+    sources: [
+      { dir: POSTULACIONES_DIR, pattern: /\.(md|pdf|docx|html)$/i, recursive: true },
+    ],
+    description: 'Propuestas y cartas para postulaciones a programas y convocatorias',
   },
 
   // ── Sitio web público → Web y Diagnóstico
