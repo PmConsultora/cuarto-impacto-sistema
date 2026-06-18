@@ -46,6 +46,43 @@ router.post('/', async (req, res) => {
       });
     }
 
+    // ── Linkeo automático con CRM Empresas ──
+    let empresa_id = null;
+    if (empresa && empresa.trim()) {
+      const empresaNombre = empresa.trim();
+      // 1) Buscar empresa existente por email_contacto (preferido)
+      const { data: porEmail } = await supabase
+        .from('empresas')
+        .select('id')
+        .eq('email_contacto', emailAddr)
+        .maybeSingle();
+
+      if (porEmail) {
+        empresa_id = porEmail.id;
+      } else {
+        // 2) Buscar por razón social (case-insensitive)
+        const { data: porNombre } = await supabase
+          .from('empresas')
+          .select('id')
+          .ilike('razon_social', empresaNombre)
+          .maybeSingle();
+
+        if (porNombre) {
+          empresa_id = porNombre.id;
+        } else {
+          // 3) Crear nueva empresa en CRM con estado "invitada"
+          const { data: nueva, error: empErr } = await supabase.from('empresas').insert({
+            razon_social: empresaNombre,
+            email_contacto: emailAddr,
+            pais: pais || 'Argentina',
+            estado: 'invitada',
+            notas_internas: `Empresa creada automáticamente desde adhesión al Manifiesto de ${nombre} ${apellido}${cargo ? ' (' + cargo + ')' : ''}.`,
+          }).select().single();
+          if (!empErr && nueva) empresa_id = nueva.id;
+        }
+      }
+    }
+
     const { data, error } = await supabase.from('adherentes').insert({
       nombre, apellido, email: emailAddr,
       empresa: empresa || null,
@@ -58,6 +95,7 @@ router.post('/', async (req, res) => {
       acepta_comunicaciones: !!acepta_comunicaciones,
       mostrar_publico: mostrar_publico !== false,
       mensaje: mensaje || null,
+      empresa_id,  // ← linkeo al CRM
       ip_origen: req.ip,
       user_agent: req.get('user-agent'),
     }).select().single();
