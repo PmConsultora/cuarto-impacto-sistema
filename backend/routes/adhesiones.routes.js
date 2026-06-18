@@ -68,8 +68,10 @@ router.post('/', async (req, res) => {
     const pdfBase64 = getPdf(data.idioma);
     email.emailAdhesionConfirmada({
       email: data.email,
-      nombre: data.nombre,
+      nombre: `${data.nombre} ${data.apellido}`.trim(),
       empresa: data.empresa,
+      cargo: data.cargo,
+      pais: data.pais,
       idioma: data.idioma,
       codigo_adhesion: data.codigo_adhesion,
       pdfBase64,

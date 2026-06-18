@@ -66,8 +66,8 @@ async function emailContactoConfirmacion({ email, nombre, idioma = 'es' }) {
 }
 
 // ──── Email: adhesión al manifiesto (con PDF adjunto) ────
-async function emailAdhesionConfirmada({ email, nombre, empresa, idioma = 'es', codigo_adhesion, pdfBase64 }) {
-  const { subject, html, text } = templates.adhesionConfirmada({ nombre, empresa, idioma, codigo_adhesion });
+async function emailAdhesionConfirmada({ email, nombre, empresa, cargo, pais, idioma = 'es', codigo_adhesion, pdfBase64 }) {
+  const { subject, html, text } = templates.adhesionConfirmada({ nombre, empresa, cargo, pais, idioma, codigo_adhesion });
   const filename = idioma === 'es'
     ? 'Manifiesto_Cuarto_Impacto_VF26_ES.pdf'
     : 'Fourth_Impact_Manifesto_VF26_EN.pdf';

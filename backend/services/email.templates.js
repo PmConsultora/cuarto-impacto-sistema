@@ -181,43 +181,150 @@ function selloEmitido({ nombre_empresa, nivel, codigo_verificacion, fecha_vencim
 }
 
 // ──────────────────────────────────────────────────
-// Email — Adhesión al Manifiesto
+// Email — Adhesión al Manifiesto (versión 2: con credencial + share LinkedIn)
 // ──────────────────────────────────────────────────
-function adhesionConfirmada({ nombre, empresa, idioma = 'es', codigo_adhesion }) {
+function adhesionConfirmada({ nombre, empresa, cargo, pais, idioma = 'es', codigo_adhesion }) {
   const es = idioma === 'es';
+  const fullName = nombre || '';
+  const firstName = (nombre || '').split(' ')[0];
   const verifyUrl = `https://elcuartoimpacto.com/adherentes?codigo=${codigo_adhesion}`;
+
+  // LinkedIn share intent — URL pre-armada que abre el cuadro de compartir
+  const linkedinShareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(verifyUrl)}`;
+  const linkedinCompanyUrl = 'https://www.linkedin.com/company/126633962/';
+
+  // Texto sugerido para LinkedIn (para copiar y pegar)
+  const textoSugeridoES = `Me sumé al movimiento del Cuarto Impacto.
+
+Creemos que la responsabilidad digital es la cuarta dimensión del valor empresarial — junto al impacto económico, social y ambiental.
+
+14 principios que orientan una forma de pensar y construir empresas para una era que exige, simultáneamente, más eficiencia y más humanidad.
+
+Conocé el manifiesto: elcuartoimpacto.com
+
+@El Cuarto Impacto · @Paula Monte
+#ElCuartoImpacto #IAResponsable #ResponsabilidadDigital #LiderazgoDigital`;
+
+  const textoSugeridoEN = `I joined The Fourth Impact movement.
+
+We believe digital responsibility is the fourth dimension of business value — alongside economic, social and environmental impact.
+
+14 principles that guide a way of thinking and building organizations for an era that demands, simultaneously, greater efficiency and greater humanity.
+
+Discover the manifesto: elcuartoimpacto.com
+
+@El Cuarto Impacto · @Paula Monte
+#TheFourthImpact #ResponsibleAI #DigitalResponsibility #DigitalLeadership`;
+
+  const textoSugerido = es ? textoSugeridoES : textoSugeridoEN;
+
   const subject = es
-    ? `${nombre}, sos parte del Cuarto Impacto`
-    : `${nombre}, you are part of The Fourth Impact`;
+    ? `🌟 ${firstName}, sos parte del Cuarto Impacto`
+    : `🌟 ${firstName}, you are part of The Fourth Impact`;
 
+  // ─── CREDENCIAL VISUAL (HTML tipo "diploma mini") ───
+  const credencial = `
+    <table cellspacing="0" cellpadding="0" border="0" style="width:100%;margin:24px 0">
+      <tr><td>
+        <table cellspacing="0" cellpadding="0" border="0" style="width:100%;background:linear-gradient(135deg,#0f2137 0%,#1e3a5f 100%);border-radius:8px;overflow:hidden;border-top:4px solid #f4b822">
+          <tr><td style="padding:32px 28px;text-align:center">
+
+            <!-- Logo (4 cuadrados) en SVG -->
+            <table cellspacing="0" cellpadding="0" border="0" style="margin:0 auto 16px"><tr><td>
+              <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 28 28" style="display:block">
+                <rect x="0" y="0" width="12" height="12" rx="2.5" fill="#c8ddee"/>
+                <rect x="15" y="0" width="12" height="12" rx="2.5" fill="#c8ddee"/>
+                <rect x="0" y="15" width="12" height="12" rx="2.5" fill="#c8ddee"/>
+                <rect x="15" y="15" width="12" height="12" rx="2.5" fill="#f4b822"/>
+              </svg>
+            </td></tr></table>
+
+            <div style="color:#f4b822;font-size:10px;letter-spacing:0.25em;text-transform:uppercase;font-weight:600;margin-bottom:10px">El Cuarto Impacto · ${es ? 'Adherente al Manifiesto' : 'Manifesto Signatory'}</div>
+
+            <div style="color:#c8ddee;font-family:'Cormorant Garamond',Georgia,serif;font-size:14px;font-style:italic;letter-spacing:0.05em;margin-bottom:4px">${es ? 'Esta es la constancia oficial de adhesión de' : 'This is the official record of adhesion of'}</div>
+
+            <div style="color:#ffffff;font-family:'Cormorant Garamond',Georgia,serif;font-size:30px;font-weight:600;line-height:1.1;margin:8px 0 4px">${fullName}</div>
+
+            ${empresa ? `<div style="color:#f4b822;font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:16px;margin-bottom:2px">${empresa}</div>` : ''}
+            ${cargo ? `<div style="color:rgba(200,221,238,0.7);font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:18px">${cargo}</div>` : '<div style="margin-bottom:18px"></div>'}
+
+            <div style="width:60px;height:1px;background:#f4b822;margin:0 auto 18px"></div>
+
+            <div style="color:#c8ddee;font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:13px;line-height:1.45;max-width:340px;margin:0 auto 22px">${es ?
+              'Se compromete a integrar la responsabilidad digital como cuarta dimensión del valor empresarial, junto al impacto económico, social y ambiental.' :
+              'Commits to integrating digital responsibility as the fourth dimension of business value, alongside economic, social and environmental impact.'}</div>
+
+            <!-- Datos verificación -->
+            <table cellspacing="0" cellpadding="0" border="0" style="margin:0 auto;background:rgba(244,184,34,0.08);border-radius:4px;border:1px solid rgba(244,184,34,0.25)">
+              <tr>
+                <td style="padding:10px 18px;text-align:center">
+                  <div style="color:#f4b822;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;font-weight:600;margin-bottom:4px">${es ? 'Código de verificación' : 'Verification code'}</div>
+                  <div style="color:#ffffff;font-family:ui-monospace,'JetBrains Mono',Menlo,monospace;font-size:14px;letter-spacing:0.12em">${codigo_adhesion}</div>
+                </td>
+              </tr>
+            </table>
+
+            <div style="margin-top:18px;color:rgba(200,221,238,0.55);font-size:9.5px;letter-spacing:0.12em;text-transform:uppercase">elcuartoimpacto.com${pais ? ' · ' + pais : ''}</div>
+
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  `;
+
+  // ─── SECCIÓN COMPARTIR (LinkedIn) ───
+  const shareBox = `
+    <table cellspacing="0" cellpadding="0" border="0" style="width:100%;margin:28px 0 8px;background:#f4eedf;border-radius:8px;border-left:3px solid #f4b822">
+      <tr><td style="padding:22px 24px">
+        <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;color:#0f2137;font-weight:600;margin-bottom:6px">${es ? '🎉 ¡Hacelo público!' : '🎉 Share it!'}</div>
+        <p style="font-size:14px;color:#3a3530;margin:0 0 16px;line-height:1.5">${es ?
+          'Contale al mundo que estás impulsando una forma más responsable de hacer empresa. Tu mensaje suma fuerza al movimiento.' :
+          'Tell the world you are leading a more responsible way of doing business. Your message strengthens the movement.'}</p>
+
+        <!-- Botón compartir LinkedIn -->
+        <table cellspacing="0" cellpadding="0" border="0" style="margin-bottom:14px"><tr><td style="background:#0a66c2;border-radius:6px">
+          <a href="${linkedinShareUrl}" target="_blank" style="display:inline-block;padding:13px 26px;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;letter-spacing:0.02em">
+            in &nbsp;${es ? 'Compartir en LinkedIn' : 'Share on LinkedIn'} →
+          </a>
+        </td></tr></table>
+
+        <div style="font-size:12px;color:#76706a;margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em">${es ? 'Texto sugerido (copialo y pegalo)' : 'Suggested copy (copy & paste)'}</div>
+        <div style="background:white;padding:14px 16px;border-radius:6px;border:1px solid #ece5d5;font-size:13px;color:#3a3530;line-height:1.55;white-space:pre-wrap;font-family:Menlo,Monaco,'Courier New',monospace">${textoSugerido}</div>
+
+        <div style="margin-top:14px;font-size:11px;color:#76706a">${es ?
+          `📌 Etiquetá a <a href="${linkedinCompanyUrl}" style="color:#0a66c2;text-decoration:none;font-weight:600">El Cuarto Impacto</a> en tu publicación así nos enteramos y lo amplificamos.` :
+          `📌 Tag <a href="${linkedinCompanyUrl}" style="color:#0a66c2;text-decoration:none;font-weight:600">El Cuarto Impacto</a> in your post so we can amplify it.`}</div>
+      </td></tr>
+    </table>
+  `;
+
+  // ─── CUERPO PRINCIPAL ───
   const body = es ? `
-    <h1 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:30px;color:#0f2137;margin:0 0 16px;font-weight:600">Gracias por adherir al Manifiesto</h1>
-    <p style="font-size:16px;color:#3a3530;margin:0 0 24px">Hola, <strong>${nombre}</strong>.</p>
-    ${empresa ? `<p style="font-size:15px;color:#3a3530;margin:0 0 24px">Acabás de sumar a <strong>${empresa}</strong> al movimiento del Cuarto Impacto. Te enviamos adjunto el manifiesto oficial en PDF.</p>` :
-    `<p style="font-size:15px;color:#3a3530;margin:0 0 24px">Acabás de sumarte al movimiento del Cuarto Impacto. Te enviamos adjunto el manifiesto oficial en PDF.</p>`}
+    <h1 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:30px;color:#0f2137;margin:0 0 12px;font-weight:600">¡Sos parte del movimiento!</h1>
+    <p style="font-size:15px;color:#3a3530;margin:0 0 4px">Hola, <strong>${firstName}</strong>.</p>
+    <p style="font-size:14px;color:#76706a;margin:0 0 12px;font-style:italic">${empresa ? `Acabás de sumar a <strong style="color:#0f2137;font-style:normal">${empresa}</strong> al movimiento del Cuarto Impacto.` : 'Acabás de sumarte al movimiento del Cuarto Impacto.'}</p>
 
-    <div style="background:#f4eedf;border-left:3px solid #f4b822;padding:16px 20px;border-radius:4px;margin:24px 0">
-      <p style="font-size:13px;color:#76706a;letter-spacing:0.08em;text-transform:uppercase;font-weight:600;margin:0 0 6px">Código de adhesión</p>
-      <p style="font-family:monospace;font-size:15px;color:#0f2137;margin:0;letter-spacing:0.1em">${codigo_adhesion}</p>
-    </div>
+    ${credencial}
 
-    <p style="font-size:15px;color:#3a3530;margin:0 0 16px">Tu adhesión queda registrada en el directorio público del movimiento. Cualquier persona puede verificarla con tu código en <a href="${verifyUrl}" style="color:#1e3a5f">elcuartoimpacto.com/adherentes</a>.</p>
+    <p style="font-size:14px;color:#3a3530;margin:18px 0 8px">📎 Te adjuntamos el <strong>manifiesto oficial en PDF</strong> con los 14 principios completos.</p>
+    <p style="font-size:14px;color:#3a3530;margin:0 0 20px">🔗 Tu adhesión queda registrada en el directorio público: <a href="${verifyUrl}" style="color:#1e3a5f">ver tu perfil público →</a></p>
 
-    <p style="font-size:14px;color:#76706a;margin:24px 0 0;font-style:italic">Bienvenida/o a una comunidad que cree que la responsabilidad digital es la cuarta dimensión del valor empresarial.<br><br>Paula Monte<br>Creadora del Cuarto Impacto</p>
+    ${shareBox}
+
+    <p style="font-size:13px;color:#76706a;margin:32px 0 0;font-style:italic;line-height:1.5">Bienvenida/o a una comunidad que cree que la responsabilidad digital es la cuarta dimensión del valor empresarial.<br><br><strong style="color:#0f2137;font-style:normal">Paula Monte</strong><br>Creadora del Cuarto Impacto</p>
   ` : `
-    <h1 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:30px;color:#0f2137;margin:0 0 16px;font-weight:600">Thank you for joining the Manifesto</h1>
-    <p style="font-size:16px;color:#3a3530;margin:0 0 24px">Hi, <strong>${nombre}</strong>.</p>
-    ${empresa ? `<p style="font-size:15px;color:#3a3530;margin:0 0 24px">You have joined <strong>${empresa}</strong> to the Fourth Impact movement. The official manifesto is attached as PDF.</p>` :
-    `<p style="font-size:15px;color:#3a3530;margin:0 0 24px">You have joined the Fourth Impact movement. The official manifesto is attached as PDF.</p>`}
+    <h1 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:30px;color:#0f2137;margin:0 0 12px;font-weight:600">You are part of the movement!</h1>
+    <p style="font-size:15px;color:#3a3530;margin:0 0 4px">Hi, <strong>${firstName}</strong>.</p>
+    <p style="font-size:14px;color:#76706a;margin:0 0 12px;font-style:italic">${empresa ? `You just joined <strong style="color:#0f2137;font-style:normal">${empresa}</strong> to The Fourth Impact movement.` : 'You just joined The Fourth Impact movement.'}</p>
 
-    <div style="background:#f4eedf;border-left:3px solid #f4b822;padding:16px 20px;border-radius:4px;margin:24px 0">
-      <p style="font-size:13px;color:#76706a;letter-spacing:0.08em;text-transform:uppercase;font-weight:600;margin:0 0 6px">Adhesion code</p>
-      <p style="font-family:monospace;font-size:15px;color:#0f2137;margin:0;letter-spacing:0.1em">${codigo_adhesion}</p>
-    </div>
+    ${credencial}
 
-    <p style="font-size:15px;color:#3a3530;margin:0 0 16px">Your adhesion is registered in the movement's public directory. Anyone can verify it with your code at <a href="${verifyUrl}" style="color:#1e3a5f">elcuartoimpacto.com/adherentes</a>.</p>
+    <p style="font-size:14px;color:#3a3530;margin:18px 0 8px">📎 The <strong>official manifesto PDF</strong> with all 14 principles is attached.</p>
+    <p style="font-size:14px;color:#3a3530;margin:0 0 20px">🔗 Your adhesion is registered in the public directory: <a href="${verifyUrl}" style="color:#1e3a5f">view your public profile →</a></p>
 
-    <p style="font-size:14px;color:#76706a;margin:24px 0 0;font-style:italic">Welcome to a community that believes digital responsibility is the fourth dimension of business value.<br><br>Paula Monte<br>Creator of The Fourth Impact</p>
+    ${shareBox}
+
+    <p style="font-size:13px;color:#76706a;margin:32px 0 0;font-style:italic;line-height:1.5">Welcome to a community that believes digital responsibility is the fourth dimension of business value.<br><br><strong style="color:#0f2137;font-style:normal">Paula Monte</strong><br>Creator of The Fourth Impact</p>
   `;
 
   return { subject, html: layout({ title: subject, body, accent: '#c8920a' }), text: subject };
