@@ -47,6 +47,9 @@ app.use('/api/pagos',           require('./routes/pagos.routes'));
 app.use('/api/adhesiones',      require('./routes/adhesiones.routes'));
 app.use('/api/contactos',       require('./routes/contactos.routes'));
 app.use('/api/stats',           require('./routes/stats.routes'));
+app.use('/api/contenidos',      require('./routes/contenidos.routes'));
+app.use('/api/pipeline',        require('./routes/pipeline.routes'));
+app.use('/api/recursos',        require('./routes/recursos.routes'));
 // app.use('/api/miembros-red', require('./routes/miembros-red.routes'));
 // app.use('/api/pagos',        require('./routes/pagos.routes'));
 

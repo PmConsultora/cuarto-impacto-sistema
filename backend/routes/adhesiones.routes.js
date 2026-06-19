@@ -143,6 +143,17 @@ router.get('/', async (req, res) => {
   res.json({ data });
 });
 
+// GET /api/adhesiones/admin — listado completo (admin)
+const { requireAuth, requireRole } = require('../middleware/auth.middleware');
+router.get('/admin', requireAuth, requireRole('admin'), async (req, res) => {
+  const { data, error } = await supabase
+    .from('adherentes')
+    .select('*')
+    .order('fecha_adhesion', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ data });
+});
+
 // GET /api/adhesiones/verificar/:codigo — verificación pública de adhesión
 router.get('/verificar/:codigo', async (req, res) => {
   const { data, error } = await supabase

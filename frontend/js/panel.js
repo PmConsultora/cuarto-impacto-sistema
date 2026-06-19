@@ -36,6 +36,13 @@ const routes = {
   'contactos':     viewContactos,
   'contacto':      viewContactoDetalle,
   'reportes':      viewReportes,
+  'pipeline':      viewPipeline,
+  'contenidos':    viewContenidos,
+  'nuevo-contenido': viewContenidoForm,
+  'contenido':     viewContenidoDetalle,
+  'recursos':      viewRecursos,
+  'nuevo-recurso': viewRecursoForm,
+  'adherentes-admin': viewAdherentesAdmin,
 };
 
 async function route() {
@@ -1224,6 +1231,424 @@ async function viewReportes() {
     },
     options: chartOpts({ horizontal: true, noLegend: true }),
   });
+}
+
+// ──────────────────────────────────────────────────
+// M8 · PIPELINE (Kanban)
+// ──────────────────────────────────────────────────
+const PIPELINE_ETAPAS_INFO = {
+  lead:        { label: 'Lead',         emoji: '🌱' },
+  calificada:  { label: 'Calificada',   emoji: '🔍' },
+  oportunidad: { label: 'Oportunidad',  emoji: '🎯' },
+  propuesta:   { label: 'Propuesta',    emoji: '📄' },
+  cliente:     { label: 'Cliente',      emoji: '✨' },
+  perdida:     { label: 'Perdida',      emoji: '✗' },
+};
+
+async function viewPipeline() {
+  $main().innerHTML = `<div class="empty">Cargando pipeline…</div>`;
+  let board, resumen, etapas;
+  try {
+    const { data } = await API.get('/pipeline');
+    board = data.board; resumen = data.resumen; etapas = data.etapas;
+  } catch (err) {
+    return $main().innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+  }
+
+  const totalValor = Object.values(resumen).reduce((a, r) => a + r.valor_total, 0);
+  const totalPonderado = Object.values(resumen).reduce((a, r) => a + r.valor_ponderado, 0);
+
+  $main().innerHTML = `
+    <div class="page-head">
+      <div>
+        <span class="eyebrow">Embudo comercial</span>
+        <h1>Pipeline de ventas</h1>
+        <div class="sub">Empresas y contactos clasificados por etapa</div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="num">${(resumen.lead.cantidad + resumen.calificada.cantidad + resumen.oportunidad.cantidad + resumen.propuesta.cantidad)}</div><div class="label">Oportunidades abiertas</div></div>
+      <div class="stat"><div class="num">USD ${totalValor.toLocaleString()}</div><div class="label">Valor total</div></div>
+      <div class="stat"><div class="num">USD ${Math.round(totalPonderado).toLocaleString()}</div><div class="label">Valor ponderado</div></div>
+      <div class="stat"><div class="num">${resumen.cliente.cantidad}</div><div class="label">Clientes</div></div>
+    </div>
+
+    <div class="kanban-board">
+      ${etapas.map(e => {
+        const info = PIPELINE_ETAPAS_INFO[e];
+        const cards = board[e] || [];
+        return `
+          <div class="kanban-col ${e}">
+            <h4>
+              <span>${info.emoji} ${info.label}</span>
+              <span class="count">${cards.length}</span>
+            </h4>
+            ${resumen[e].valor_total > 0 ? `<div class="valor-col">USD ${resumen[e].valor_total.toLocaleString()}</div>` : ''}
+            ${cards.length === 0 ? `<div class="kanban-empty">Sin items</div>` :
+              cards.map(c => kanbanCardHtml(c)).join('')}
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function kanbanCardHtml(c) {
+  const empresa = c.tipo === 'empresa' ? '' : (c.empresa ? `<div class="sub">${c.empresa}</div>` : '');
+  return `
+    <div class="kanban-card" onclick="moverPipeline('${c.tipo}', '${c.id}')">
+      <span class="tipo-tag ${c.tipo === 'empresa' ? 'tipo-empresa' : 'tipo-contacto'}">${c.tipo}</span>
+      <div class="nombre">${c.nombre}</div>
+      ${empresa}
+      <div class="sub">${c.email || ''}</div>
+      <div class="meta">
+        <span>${c.pais || c.origen || ''}</span>
+        ${c.valor > 0 ? `<span class="valor">USD ${Number(c.valor).toLocaleString()}</span>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+window.moverPipeline = async (tipo, id) => {
+  const etapas = Object.keys(PIPELINE_ETAPAS_INFO);
+  const seleccion = prompt(`Cambiar etapa a:\n\n${etapas.map((e, i) => `${i+1}. ${PIPELINE_ETAPAS_INFO[e].emoji} ${PIPELINE_ETAPAS_INFO[e].label}`).join('\n')}\n\nEscribí el número (1-6):`);
+  if (!seleccion) return;
+  const idx = parseInt(seleccion) - 1;
+  if (idx < 0 || idx >= etapas.length) return alert('Opción inválida');
+  try {
+    await API.patch(`/pipeline/${tipo}/${id}`, { pipeline_etapa: etapas[idx] });
+    location.reload();
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+};
+
+// ──────────────────────────────────────────────────
+// M7 · CONTENIDOS (Marketing)
+// ──────────────────────────────────────────────────
+const TIPOS_CONT = ['post','evento','newsletter','articulo','podcast','video','otro'];
+const PLATAFORMAS = ['linkedin','instagram','twitter','web','blog','newsletter','youtube','otro'];
+const ESTADOS_CONT = ['idea','borrador','programado','publicado','archivado'];
+
+async function viewContenidos() {
+  $main().innerHTML = `<div class="empty">Cargando…</div>`;
+  const { data } = await API.get('/contenidos');
+  const items = data || [];
+
+  $main().innerHTML = `
+    <div class="page-head">
+      <div>
+        <span class="eyebrow">Plan de contenidos</span>
+        <h1>Marketing</h1>
+        <div class="sub">${items.length} ${items.length === 1 ? 'contenido' : 'contenidos'} · gestión editorial del movimiento</div>
+      </div>
+      <a href="#/nuevo-contenido" class="btn btn-gold">+ Nuevo contenido</a>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="num">${items.filter(c => c.estado === 'idea').length}</div><div class="label">Ideas</div></div>
+      <div class="stat"><div class="num">${items.filter(c => c.estado === 'borrador').length}</div><div class="label">Borradores</div></div>
+      <div class="stat"><div class="num">${items.filter(c => c.estado === 'programado').length}</div><div class="label">Programados</div></div>
+      <div class="stat"><div class="num">${items.filter(c => c.estado === 'publicado').length}</div><div class="label">Publicados</div></div>
+    </div>
+
+    ${items.length === 0
+      ? `<div class="card empty">Aún no hay contenidos. Empezá con "+ Nuevo contenido".</div>`
+      : items.map(c => `
+        <div class="content-card" onclick="location.hash='#/contenido/${c.id}'">
+          <div class="content-thumb"${c.imagen_url ? ` style="background-image:url('${c.imagen_url}')"` : ''}>${c.imagen_url ? '' : (c.tipo[0] || '?').toUpperCase()}</div>
+          <div class="content-info">
+            <div class="titulo">${c.titulo}</div>
+            <div class="tags">
+              <span class="tag">${c.tipo}</span>
+              <span class="tag">${c.plataforma}</span>
+              <span class="tag">${c.idioma.toUpperCase()}</span>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <span class="estado estado-${c.estado === 'publicado' ? 'certificada' : (c.estado === 'archivado' ? 'vencida' : (c.estado === 'programado' ? 'en_evaluacion' : ''))}">${c.estado}</span>
+            <div style="font-size:0.72rem;color:var(--muted);margin-top:0.3rem">${c.fecha_publicacion ? fmtDate(c.fecha_publicacion) : '—'}</div>
+          </div>
+        </div>
+      `).join('')}
+  `;
+}
+
+async function viewContenidoForm() {
+  $main().innerHTML = `
+    <div class="page-head">
+      <div>
+        <span class="eyebrow">Contenido</span>
+        <h1>Nuevo contenido</h1>
+        <div class="sub">Agregá un post, evento o pieza editorial al plan</div>
+      </div>
+      <a href="#/contenidos" class="btn btn-outline">← Volver</a>
+    </div>
+    <div id="alert"></div>
+    <div class="card">
+      <form id="form-contenido">
+        <div class="field"><label>Título *</label><input name="titulo" required></div>
+        <div class="grid-2">
+          <div>
+            <div class="field"><label>Tipo</label>
+              <select name="tipo">${TIPOS_CONT.map(t => `<option value="${t}">${t}</option>`).join('')}</select>
+            </div>
+            <div class="field"><label>Plataforma</label>
+              <select name="plataforma">${PLATAFORMAS.map(p => `<option value="${p}">${p}</option>`).join('')}</select>
+            </div>
+            <div class="field"><label>Estado</label>
+              <select name="estado">${ESTADOS_CONT.map(e => `<option value="${e}">${e}</option>`).join('')}</select>
+            </div>
+          </div>
+          <div>
+            <div class="field"><label>Idioma</label>
+              <select name="idioma"><option value="es">Español</option><option value="en">English</option></select>
+            </div>
+            <div class="field"><label>Fecha de publicación</label><input type="datetime-local" name="fecha_publicacion"></div>
+            <div class="field"><label>URL publicada</label><input name="url_publicado" placeholder="https://"></div>
+          </div>
+        </div>
+        <div class="field"><label>Imagen (URL)</label><input name="imagen_url" placeholder="https://"></div>
+        <div class="field"><label>Objetivo</label><input name="objetivo" placeholder="Ej: awareness, leads, engagement"></div>
+        <div class="field"><label>Contenido (Markdown)</label><textarea name="contenido" rows="8"></textarea></div>
+        <div class="field"><label>Notas internas</label><textarea name="notas" rows="3"></textarea></div>
+        <button type="submit" class="btn btn-primary">Crear contenido</button>
+      </form>
+    </div>
+  `;
+  document.getElementById('form-contenido').onsubmit = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const body = Object.fromEntries(fd.entries());
+    Object.keys(body).forEach(k => body[k] === '' && delete body[k]);
+    try {
+      const { data } = await API.post('/contenidos', body);
+      location.hash = `#/contenido/${data.id}`;
+    } catch (err) {
+      document.getElementById('alert').innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+    }
+  };
+}
+
+async function viewContenidoDetalle([id]) {
+  if (!id) return location.hash = '#/contenidos';
+  $main().innerHTML = `<div class="empty">Cargando…</div>`;
+  let c;
+  try { const r = await API.get(`/contenidos/${id}`); c = r.data; }
+  catch (err) { return $main().innerHTML = `<div class="alert alert-error">${err.message}</div>`; }
+
+  $main().innerHTML = `
+    <div class="page-head">
+      <div>
+        <span class="eyebrow">${c.tipo} · ${c.plataforma}</span>
+        <h1>${c.titulo}</h1>
+        <div class="sub"><span class="estado">${c.estado}</span> · ${c.idioma.toUpperCase()} · ${c.fecha_publicacion ? fmtDate(c.fecha_publicacion) : 'sin fecha'}</div>
+      </div>
+      <a href="#/contenidos" class="btn btn-outline">← Volver</a>
+    </div>
+    <div id="alert"></div>
+    <div class="card">
+      <form id="form-edit">
+        <div class="field"><label>Título</label><input name="titulo" value="${c.titulo}" required></div>
+        <div class="grid-2">
+          <div>
+            <div class="field"><label>Estado</label>
+              <select name="estado">${ESTADOS_CONT.map(e => `<option value="${e}" ${e === c.estado ? 'selected' : ''}>${e}</option>`).join('')}</select>
+            </div>
+            <div class="field"><label>Tipo</label>
+              <select name="tipo">${TIPOS_CONT.map(t => `<option value="${t}" ${t === c.tipo ? 'selected' : ''}>${t}</option>`).join('')}</select>
+            </div>
+            <div class="field"><label>Plataforma</label>
+              <select name="plataforma">${PLATAFORMAS.map(p => `<option value="${p}" ${p === c.plataforma ? 'selected' : ''}>${p}</option>`).join('')}</select>
+            </div>
+          </div>
+          <div>
+            <div class="field"><label>Fecha publicación</label>
+              <input type="datetime-local" name="fecha_publicacion" value="${c.fecha_publicacion ? c.fecha_publicacion.slice(0,16) : ''}">
+            </div>
+            <div class="field"><label>URL publicada</label><input name="url_publicado" value="${c.url_publicado || ''}"></div>
+            <div class="field"><label>Imagen URL</label><input name="imagen_url" value="${c.imagen_url || ''}"></div>
+          </div>
+        </div>
+        <div class="field"><label>Contenido (Markdown)</label><textarea name="contenido" rows="10">${c.contenido || ''}</textarea></div>
+        <div class="field"><label>Notas internas</label><textarea name="notas" rows="3">${c.notas || ''}</textarea></div>
+        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+        <button type="button" class="btn btn-outline" style="margin-left:0.5rem" onclick="borrarContenido('${c.id}')">Eliminar</button>
+      </form>
+    </div>
+  `;
+  document.getElementById('form-edit').onsubmit = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const body = Object.fromEntries(fd.entries());
+    Object.keys(body).forEach(k => body[k] === '' && delete body[k]);
+    try {
+      await API.patch(`/contenidos/${id}`, body);
+      document.getElementById('alert').innerHTML = `<div class="alert alert-success">Guardado</div>`;
+      setTimeout(() => document.getElementById('alert').innerHTML = '', 2000);
+    } catch (err) {
+      document.getElementById('alert').innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+    }
+  };
+}
+
+window.borrarContenido = async (id) => {
+  if (!confirm('¿Eliminar este contenido?')) return;
+  await API.delete(`/contenidos/${id}`);
+  location.hash = '#/contenidos';
+};
+
+// ──────────────────────────────────────────────────
+// M9 · RECURSOS
+// ──────────────────────────────────────────────────
+const TIPOS_REC = ['pdf','video','link','herramienta','imagen','audio','otro'];
+const CATEGORIAS_REC = ['manifiesto','framework','casos','guias','presentaciones','plantillas','general'];
+
+async function viewRecursos() {
+  $main().innerHTML = `<div class="empty">Cargando…</div>`;
+  const { data } = await API.get('/recursos/admin');
+  const items = data || [];
+
+  $main().innerHTML = `
+    <div class="page-head">
+      <div>
+        <span class="eyebrow">Biblioteca</span>
+        <h1>Recursos</h1>
+        <div class="sub">${items.length} ${items.length === 1 ? 'recurso' : 'recursos'} · ${items.filter(r => r.publico).length} público${items.filter(r => r.publico).length === 1 ? '' : 's'}</div>
+      </div>
+      <a href="#/nuevo-recurso" class="btn btn-gold">+ Nuevo recurso</a>
+    </div>
+
+    ${items.length === 0
+      ? `<div class="card empty">Aún no hay recursos. Cargá manifiestos, guías, plantillas y más.</div>`
+      : `<div class="recursos-grid">
+        ${items.map(r => `
+          <div class="recurso-card">
+            ${r.destacado ? '<span class="destacado-tag">★ Destacado</span>' : ''}
+            <div class="tipo">${r.tipo} · ${r.categoria}</div>
+            <div class="titulo">${r.titulo}</div>
+            <div class="descripcion">${r.descripcion || ''}</div>
+            <div class="footer">
+              <span>${r.publico ? '🌐 Público' : '🔒 Privado'} · ${r.idioma.toUpperCase()}</span>
+              <a href="${r.url_descarga}" target="_blank" style="color:var(--gold);font-weight:600">Abrir →</a>
+            </div>
+          </div>
+        `).join('')}
+      </div>`}
+  `;
+}
+
+async function viewRecursoForm() {
+  $main().innerHTML = `
+    <div class="page-head">
+      <div>
+        <span class="eyebrow">Recurso</span>
+        <h1>Nuevo recurso</h1>
+      </div>
+      <a href="#/recursos" class="btn btn-outline">← Volver</a>
+    </div>
+    <div id="alert"></div>
+    <div class="card">
+      <form id="form-recurso">
+        <div class="field"><label>Título *</label><input name="titulo" required></div>
+        <div class="field"><label>Descripción</label><textarea name="descripcion" rows="3"></textarea></div>
+        <div class="grid-2">
+          <div>
+            <div class="field"><label>Tipo</label>
+              <select name="tipo">${TIPOS_REC.map(t => `<option value="${t}">${t}</option>`).join('')}</select>
+            </div>
+            <div class="field"><label>Categoría</label>
+              <select name="categoria">${CATEGORIAS_REC.map(c => `<option value="${c}">${c}</option>`).join('')}</select>
+            </div>
+            <div class="field"><label>Idioma</label>
+              <select name="idioma"><option value="es">Español</option><option value="en">English</option></select>
+            </div>
+          </div>
+          <div>
+            <div class="field"><label>URL de descarga *</label><input name="url_descarga" required placeholder="https://drive.google.com/..."></div>
+            <div class="field"><label>Imagen thumbnail</label><input name="imagen_thumbnail" placeholder="https://"></div>
+            <div class="field">
+              <label><input type="checkbox" name="publico" checked> Visible en el sitio público</label>
+            </div>
+            <div class="field">
+              <label><input type="checkbox" name="destacado"> Destacado (aparece arriba)</label>
+            </div>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Crear recurso</button>
+      </form>
+    </div>
+  `;
+  document.getElementById('form-recurso').onsubmit = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const body = {
+      titulo: fd.get('titulo'),
+      descripcion: fd.get('descripcion') || null,
+      tipo: fd.get('tipo'),
+      categoria: fd.get('categoria'),
+      idioma: fd.get('idioma'),
+      url_descarga: fd.get('url_descarga'),
+      imagen_thumbnail: fd.get('imagen_thumbnail') || null,
+      publico: !!fd.get('publico'),
+      destacado: !!fd.get('destacado'),
+    };
+    try {
+      await API.post('/recursos', body);
+      location.hash = '#/recursos';
+    } catch (err) {
+      document.getElementById('alert').innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+    }
+  };
+}
+
+// ──────────────────────────────────────────────────
+// ADHERENTES (vista admin completa)
+// ──────────────────────────────────────────────────
+async function viewAdherentesAdmin() {
+  $main().innerHTML = `<div class="empty">Cargando…</div>`;
+  const { data } = await API.get('/adhesiones/admin');
+  const items = data || [];
+
+  $main().innerHTML = `
+    <div class="page-head">
+      <div>
+        <span class="eyebrow">Movimiento</span>
+        <h1>Adherentes al Manifiesto</h1>
+        <div class="sub">${items.length} ${items.length === 1 ? 'persona / empresa adherida' : 'personas / empresas adheridas'}</div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="num">${items.length}</div><div class="label">Total</div></div>
+      <div class="stat"><div class="num">${items.filter(a => a.mostrar_publico).length}</div><div class="label">Públicas</div></div>
+      <div class="stat"><div class="num">${items.filter(a => a.empresa).length}</div><div class="label">Con empresa</div></div>
+      <div class="stat"><div class="num">${new Set(items.map(a => a.pais)).size}</div><div class="label">Países</div></div>
+    </div>
+
+    ${items.length === 0
+      ? `<div class="card empty">Aún no hay adherentes. Compartí elcuartoimpacto.com/adherir para empezar a sumar.</div>`
+      : `<div class="card" style="padding:0;overflow:hidden">
+          <table>
+            <thead><tr>
+              <th>Fecha</th><th>Nombre</th><th>Empresa</th><th>Cargo</th><th>País</th><th>Idioma</th><th>Público</th><th>Código</th>
+            </tr></thead>
+            <tbody>${items.map(a => `
+              <tr>
+                <td>${fmtDate(a.fecha_adhesion)}</td>
+                <td><strong>${a.nombre} ${a.apellido}</strong><br><small style="color:var(--muted)">${a.email}</small></td>
+                <td>${a.empresa || '—'}</td>
+                <td>${a.cargo || '—'}</td>
+                <td>${a.pais}</td>
+                <td>${a.idioma.toUpperCase()}</td>
+                <td>${a.mostrar_publico ? '✓' : '✗'}</td>
+                <td><code style="font-size:0.7rem">${a.codigo_adhesion}</code></td>
+              </tr>
+            `).join('')}</tbody>
+          </table>
+        </div>`}
+  `;
 }
 
 function chartOpts({ doughnut, horizontal, noLegend } = {}) {

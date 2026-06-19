@@ -835,6 +835,213 @@ tbody tr:last-child td { border-bottom: none; }
   background: var(--navy); color: white;
 }
 
+/* ── PIPELINE KANBAN (M8) ──────────────────────────────────────── */
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(220px, 1fr));
+  gap: 0.85rem;
+  overflow-x: auto;
+  padding-bottom: 1rem;
+}
+@media (max-width: 1200px) { .kanban-board { grid-template-columns: repeat(3, minmax(220px, 1fr)); } }
+@media (max-width: 700px)  { .kanban-board { grid-template-columns: repeat(2, minmax(180px, 1fr)); } }
+
+.kanban-col {
+  background: var(--paper-warm);
+  border-radius: var(--radius);
+  padding: 0.8rem 0.7rem;
+  border-top: 3px solid var(--border);
+  min-height: 220px;
+}
+.kanban-col.lead         { border-top-color: var(--muted); }
+.kanban-col.calificada   { border-top-color: var(--celeste); }
+.kanban-col.oportunidad  { border-top-color: var(--goldb); }
+.kanban-col.propuesta    { border-top-color: var(--gold); }
+.kanban-col.cliente      { border-top-color: var(--success); }
+.kanban-col.perdida      { border-top-color: var(--error); opacity: 0.85; }
+
+.kanban-col h4 {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--navy-mid);
+  margin-bottom: 0.6rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 0.3rem;
+}
+.kanban-col .count {
+  background: white;
+  color: var(--muted);
+  padding: 0.1rem 0.5rem;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+.kanban-col .valor-col {
+  font-size: 0.75rem;
+  color: var(--muted);
+  padding: 0 0.3rem 0.5rem;
+  font-weight: 600;
+}
+
+.kanban-card {
+  background: white;
+  border-radius: var(--radius-sm);
+  padding: 0.7rem 0.85rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--border-soft);
+  cursor: pointer;
+  transition: all var(--t);
+  box-shadow: var(--shadow-xs);
+}
+.kanban-card:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); border-color: var(--gold); }
+
+.kanban-card .tipo-tag {
+  display: inline-block;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  margin-bottom: 0.35rem;
+}
+.kanban-card .tipo-empresa { background: var(--celeste-bg); color: var(--navy-mid); }
+.kanban-card .tipo-contacto { background: var(--paper-warm); color: var(--gold); }
+.kanban-card .nombre {
+  font-size: 0.88rem;
+  color: var(--navy);
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+  line-height: 1.25;
+}
+.kanban-card .sub {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+}
+.kanban-card .meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--muted-soft);
+  padding-top: 0.3rem;
+  border-top: 1px dashed var(--border-soft);
+  margin-top: 0.3rem;
+}
+.kanban-card .valor {
+  color: var(--success);
+  font-weight: 700;
+}
+.kanban-empty {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--muted-soft);
+  font-style: italic;
+  padding: 1.5rem 0.5rem;
+}
+
+/* ── CONTENIDOS (M7) ──────────────────────────────────────── */
+.content-card {
+  background: white;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  padding: 1rem 1.2rem;
+  margin-bottom: 0.7rem;
+  display: grid;
+  grid-template-columns: 60px 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  cursor: pointer;
+  transition: all var(--t);
+}
+.content-card:hover { border-color: var(--gold); box-shadow: var(--shadow-sm); }
+
+.content-thumb {
+  width: 60px; height: 60px;
+  border-radius: var(--radius-sm);
+  background: var(--paper-warm);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--gold); font-family: var(--serif); font-size: 1.5rem; font-weight: 600;
+  background-size: cover; background-position: center;
+}
+
+.content-info .titulo { font-weight: 600; color: var(--navy); margin-bottom: 0.2rem; }
+.content-info .tags { font-size: 0.72rem; color: var(--muted); }
+.content-info .tag {
+  display: inline-block;
+  background: var(--celeste-bg);
+  color: var(--navy-mid);
+  padding: 0.1rem 0.5rem;
+  border-radius: 20px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-right: 0.3rem;
+}
+
+/* ── RECURSOS ──────────────────────────────────────── */
+.recursos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+.recurso-card {
+  background: white;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  transition: all var(--t);
+  display: flex; flex-direction: column;
+}
+.recurso-card:hover { border-color: var(--gold); box-shadow: var(--shadow-sm); }
+.recurso-card .destacado-tag {
+  display: inline-block;
+  background: var(--goldb);
+  color: var(--navy);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.55rem;
+  border-radius: 3px;
+  margin-bottom: 0.6rem;
+}
+.recurso-card .tipo {
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+.recurso-card .titulo {
+  font-family: var(--serif);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 0.5rem;
+  line-height: 1.25;
+}
+.recurso-card .descripcion {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  line-height: 1.55;
+  flex: 1;
+  margin-bottom: 0.8rem;
+}
+.recurso-card .footer {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border-soft);
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
 /* ── ANIMATIONS ──────────────────────────────────────── */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
