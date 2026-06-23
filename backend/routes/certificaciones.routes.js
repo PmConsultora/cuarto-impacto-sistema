@@ -47,34 +47,48 @@ router.get('/:id', requireAuth, async (req, res) => {
 
 // POST /api/certificaciones — iniciar proceso
 router.post('/', requireAuth, requireRole('admin', 'empresa'), audit('crear', 'certificaciones'), async (req, res) => {
-  const { empresa_id, nivel_solicitado } = req.body;
+  try {
+    const { empresa_id, nivel_solicitado } = req.body;
 
-  if (!empresa_id || !nivel_solicitado) {
-    return res.status(400).json({ error: 'empresa_id y nivel_solicitado son requeridos' });
+    if (!empresa_id || !nivel_solicitado) {
+      return res.status(400).json({ error: 'empresa_id y nivel_solicitado son requeridos' });
+    }
+
+    // Verificar que no haya una certificación activa para el mismo nivel
+    // Usar maybeSingle() para que no tire error si no encuentra
+    const { data: existente, error: errBusca } = await supabase
+      .from('certificaciones')
+      .select('id')
+      .eq('empresa_id', empresa_id)
+      .eq('nivel_solicitado', nivel_solicitado)
+      .in('estado', ['borrador', 'pendiente_pago', 'pagada', 'en_evaluacion', 'dictamen_emitido'])
+      .maybeSingle();
+
+    if (errBusca) {
+      console.error('Error buscando cert existente:', errBusca);
+      return res.status(500).json({ error: 'Error verificando certificaciones existentes: ' + errBusca.message });
+    }
+
+    if (existente) {
+      return res.status(409).json({ error: 'Ya existe una certificación activa para este nivel' });
+    }
+
+    const { data, error } = await supabase.from('certificaciones').insert({
+      empresa_id,
+      nivel_solicitado,
+      fecha_postulacion: new Date().toISOString(),
+      estado: 'borrador',
+    }).select().single();
+
+    if (error) {
+      console.error('Error insertando cert:', error);
+      return res.status(500).json({ error: error.message, details: error });
+    }
+    res.status(201).json({ data });
+  } catch (e) {
+    console.error('Error inesperado en POST /certificaciones:', e);
+    res.status(500).json({ error: e.message || 'Error inesperado', stack: e.stack });
   }
-
-  // Verificar que no haya una certificación activa para el mismo nivel
-  const { data: existente } = await supabase
-    .from('certificaciones')
-    .select('id')
-    .eq('empresa_id', empresa_id)
-    .eq('nivel_solicitado', nivel_solicitado)
-    .in('estado', ['borrador', 'pendiente_pago', 'pagada', 'en_evaluacion', 'dictamen_emitido'])
-    .single();
-
-  if (existente) {
-    return res.status(409).json({ error: 'Ya existe una certificación activa para este nivel' });
-  }
-
-  const { data, error } = await supabase.from('certificaciones').insert({
-    empresa_id,
-    nivel_solicitado,
-    fecha_postulacion: new Date().toISOString(),
-    estado: 'borrador',
-  }).select().single();
-
-  if (error) return res.status(500).json({ error: error.message });
-  res.status(201).json({ data });
 });
 
 // PATCH /api/certificaciones/:id/asignar-certificador — asignar evaluador
