@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Limpiando caché · El Cuarto Impacto</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background: linear-gradient(135deg, #0f2137 0%, #1e3a5f 100%);
+  color: #faf8f3;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+}
+.box {
+  background: rgba(250,248,243,0.05);
+  padding: 3rem 2.5rem;
+  border-radius: 12px;
+  max-width: 460px;
+  text-align: center;
+  border: 1px solid rgba(244,184,34,0.2);
+}
+.logo {
+  display: inline-block;
+  padding: 1rem;
+  background: rgba(244,184,34,0.1);
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+}
+h1 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.75rem;
+  font-style: italic;
+  color: #f4b822;
+  margin-bottom: 1rem;
+}
+.status {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #c8ddee;
+  margin-bottom: 2rem;
+  min-height: 80px;
+}
+.status ul {
+  list-style: none;
+  text-align: left;
+  margin: 1rem 0;
+  padding-left: 0;
+}
+.status li {
+  padding: 0.4rem 0;
+  font-size: 0.88rem;
+}
+.status li.done { color: #f4b822; }
+.btn {
+  background: #f4b822;
+  color: #0f2137;
+  padding: 0.85rem 1.8rem;
+  border-radius: 6px;
+  border: none;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  font-family: inherit;
+  display: inline-block;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+.btn:hover { background: #c8920a; color: white; }
+.btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+.spin {
+  display: inline-block;
+  width: 18px; height: 18px;
+  border: 2px solid rgba(244,184,34,0.3);
+  border-top-color: #f4b822;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+  margin-right: 0.5rem;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="logo">
+    <svg width="44" height="44" viewBox="0 0 28 28" fill="none">
+      <rect x="0" y="0" width="12" height="12" rx="2.5" fill="#c8ddee"/>
+      <rect x="15" y="0" width="12" height="12" rx="2.5" fill="#c8ddee"/>
+      <rect x="0" y="15" width="12" height="12" rx="2.5" fill="#c8ddee"/>
+      <rect x="15" y="15" width="12" height="12" rx="2.5" fill="#f4b822"/>
+    </svg>
+  </div>
+  <h1>Limpiando caché del sistema</h1>
+  <div class="status" id="status"><span class="spin"></span>Iniciando…</div>
+  <a href="/" class="btn" id="goto" style="display:none">Ir al login →</a>
+</div>
+
+<script>
+(async () => {
+  const status = document.getElementById('status');
+  const goto = document.getElementById('goto');
+  const log = [];
+  function update(msg, done = false) {
+    log.push(`<li class="${done ? 'done' : ''}">${done ? '✓' : '⋯'} ${msg}</li>`);
+    status.innerHTML = '<ul>' + log.join('') + '</ul>';
+  }
+
+  try {
+    // 1) Desregistrar Service Workers
+    update('Buscando Service Workers…');
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for (const r of regs) {
+        await r.unregister();
+      }
+      log.pop();
+      update(`Service Workers desregistrados: ${regs.length}`, true);
+    } else {
+      log.pop();
+      update('Sin Service Workers en este navegador', true);
+    }
+
+    // 2) Limpiar todos los caches
+    update('Limpiando cachés…');
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      for (const k of keys) await caches.delete(k);
+      log.pop();
+      update(`Cachés borradas: ${keys.length}`, true);
+    }
+
+    // 3) Limpiar localStorage / sessionStorage del dominio
+    update('Limpiando almacenamiento local…');
+    try { localStorage.clear(); } catch (e) {}
+    try { sessionStorage.clear(); } catch (e) {}
+    log.pop();
+    update('Almacenamiento local limpio', true);
+
+    // 4) Listo
+    update('¡Listo! Tu navegador está limpio.', true);
+    goto.style.display = 'inline-block';
+
+    // Redirección automática a los 3 segundos
+    setTimeout(() => { window.location.href = '/'; }, 3000);
+
+  } catch (err) {
+    status.innerHTML = '<div style="color:#fca5a5">Error: ' + err.message + '</div>';
+    goto.style.display = 'inline-block';
+  }
+})();
+</script>
+</body>
+</html>
