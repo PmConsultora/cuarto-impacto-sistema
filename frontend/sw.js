@@ -1,13 +1,9 @@
 // Service Worker mínimo para PWA del Cuarto Impacto
 // Hace que la app sea "instalable" y funcione básicamente offline para el shell.
 
-const CACHE_NAME = 'cuarto-impacto-v1';
+const CACHE_NAME = 'cuarto-impacto-v3';
+// Solo cacheamos assets estáticos que no cambian. NO cacheamos JS porque cambia con cada deploy.
 const SHELL_URLS = [
-  '/',
-  '/panel.html',
-  '/css/styles.css',
-  '/js/api.js',
-  '/js/panel.js',
   '/img/logo.svg',
   '/img/logo-white.svg',
   '/manifest.json',
@@ -40,12 +36,19 @@ self.addEventListener('fetch', (event) => {
     return; // dejar que el navegador maneje normal
   }
 
-  // Assets estáticos: cache-first con fallback a red
+  // HTML y JS: SIEMPRE red (network-first) para evitar servir código viejo
+  if (url.pathname.endsWith('.html') || url.pathname.endsWith('.js') || url.pathname === '/' || url.pathname.startsWith('/panel')) {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Assets estáticos (CSS, imágenes, fuentes): cache-first con fallback a red
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
       return fetch(event.request).then((res) => {
-        // Cachear opportunísticamente solo respuestas OK del mismo origen
         if (res.ok && url.origin === self.location.origin) {
           const clone = res.clone();
           caches.open(CACHE_NAME).then((c) => c.put(event.request, clone)).catch(() => {});
