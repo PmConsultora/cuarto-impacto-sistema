@@ -20,8 +20,11 @@ app.use(cors({
       process.env.CORS_ORIGIN,
       'https://elcuartoimpacto.com',
       'https://www.elcuartoimpacto.com',
+      'https://cuarto-impacto-sistema-1.onrender.com',
     ].filter(Boolean);
-    if (!origin || allowed.includes(origin)) return cb(null, true);
+    // Permitir el propio panel servido desde Render (cualquier *.onrender.com de este servicio)
+    const esRenderPropio = origin && /^https:\/\/cuarto-impacto-sistema[\w-]*\.onrender\.com$/.test(origin);
+    if (!origin || allowed.includes(origin) || esRenderPropio) return cb(null, true);
     cb(new Error('CORS bloqueado para origen: ' + origin));
   },
   credentials: true,
@@ -55,7 +58,7 @@ app.use('/api/recursos',        require('./routes/recursos.routes'));
 
 // ── Health check ──
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', version: 'audit-fix-3-debug', timestamp: new Date().toISOString(), env: process.env.NODE_ENV });
+  res.json({ status: 'ok', version: 'cors-fix-1', timestamp: new Date().toISOString(), env: process.env.NODE_ENV });
 });
 
 // ── Config pública para el frontend ──
@@ -84,8 +87,6 @@ app.use((err, req, res, next) => {
   console.error('GLOBAL ERROR HANDLER:', err && err.stack ? err.stack : err);
   res.status(500).json({
     error: 'Error interno del servidor',
-    debug: (err && err.message) || String(err),
-    where: 'global-error-handler',
   });
 });
 
