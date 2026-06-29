@@ -81,8 +81,12 @@ app.get('*', (req, res) => {
 
 // ── Error handler ──
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Error interno del servidor' });
+  console.error('GLOBAL ERROR HANDLER:', err && err.stack ? err.stack : err);
+  res.status(500).json({
+    error: 'Error interno del servidor',
+    debug: (err && err.message) || String(err),
+    where: 'global-error-handler',
+  });
 });
 
 const PORT = process.env.PORT || 3000;
