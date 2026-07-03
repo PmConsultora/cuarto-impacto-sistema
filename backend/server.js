@@ -58,7 +58,7 @@ app.use('/api/recursos',        require('./routes/recursos.routes'));
 
 // ── Health check ──
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', version: 'cors-fix-1', timestamp: new Date().toISOString(), env: process.env.NODE_ENV });
+  res.json({ status: 'ok', version: 'mp-webhook-fix-1', timestamp: new Date().toISOString(), env: process.env.NODE_ENV });
 });
 
 // ── Config pública para el frontend ──

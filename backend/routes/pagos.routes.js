@@ -83,23 +83,39 @@ router.patch('/:id/estado', requireAuth, requireRole('admin'), audit('cambiar_es
 // ──── Webhooks ────
 
 // Webhook MercadoPago
+// MP notifica { type:'payment', data:{ id } } (o topic/id por query). El body NO trae
+// external_reference: hay que consultar el pago en la API de MP para obtenerlo y validar el estado.
 router.post('/webhook/mercadopago', async (req, res) => {
+  // Responder 200 rápido para que MP no reintente; procesamos igual antes de responder.
   try {
-    const { type, data } = req.body;
-    if (type === 'payment' && data?.id) {
-      // En producción: consultar el pago en la API de MP para validar
-      // Acá: confiamos en el body (siempre validar firma en producción)
-      const externalRef = req.body.external_reference || req.query.external_reference;
-      if (externalRef) {
-        await supabase.from('pagos').update({
-          estado: 'aprobado',
-          metadata: { webhook: req.body },
-        }).eq('id', externalRef);
+    const type = req.body?.type || req.query?.type || req.query?.topic;
+    const paymentId = req.body?.data?.id || req.query?.['data.id'] || req.query?.id;
+
+    if (type === 'payment' && paymentId) {
+      const token = process.env.MP_ACCESS_TOKEN;
+      if (token && !token.startsWith('[')) {
+        const mpRes = await fetch('https://api.mercadopago.com/v1/payments/' + paymentId, {
+          headers: { Authorization: 'Bearer ' + token },
+        });
+        if (mpRes.ok) {
+          const pago = await mpRes.json();
+          const externalRef = pago.external_reference;
+          // Mapear estado de MP -> estado interno
+          const map = { approved: 'aprobado', pending: 'pendiente', in_process: 'pendiente', rejected: 'cancelado', cancelled: 'cancelado', refunded: 'cancelado' };
+          const estado = map[pago.status] || 'pendiente';
+          if (externalRef) {
+            await supabase.from('pagos').update({
+              estado,
+              metadata: { payment_id: paymentId, mp_status: pago.status, mp_status_detail: pago.status_detail },
+            }).eq('id', externalRef);
+          }
+        }
       }
     }
     res.json({ ok: true });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    console.error('Webhook MP error:', e.message);
+    res.json({ ok: true }); // igual 200: evitamos reintentos en loop
   }
 });
 
