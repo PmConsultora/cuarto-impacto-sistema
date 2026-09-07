@@ -11,7 +11,7 @@ const upload = multer({
   limits: { fileSize: 20 * 1024 * 1024 },
 });
 
-const DIMENSIONES = ['gobernanza', 'datos', 'modelo', 'operacion', 'cultura'];
+const DIMENSIONES = ['liderazgo', 'etica', 'estrategia', 'personas', 'impacto'];
 
 // POST /api/evidencias — subir evidencia
 router.post('/',

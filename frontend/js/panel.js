@@ -9,11 +9,11 @@ const ESTADOS_EMPRESA = [
 const NIVELES = ['A1','A2','A3','A4','A5'];
 const TAMANIOS = ['micro','pequena','mediana'];
 const DIMENSIONES = [
-  { key: 'gobernanza', label: 'Gobernanza' },
-  { key: 'datos',      label: 'Datos' },
-  { key: 'modelo',     label: 'Modelo de IA' },
-  { key: 'operacion',  label: 'Operación' },
-  { key: 'cultura',    label: 'Cultura' },
+  { key: 'liderazgo',  label: 'Liderazgo y Cultura Digital' },
+  { key: 'etica',      label: 'Responsabilidad y Ética en IA' },
+  { key: 'estrategia', label: 'Estrategia y Procesos' },
+  { key: 'personas',   label: 'Personas y Bienestar' },
+  { key: 'impacto',    label: 'Impacto e Inclusión' },
 ];
 
 const $main = () => document.getElementById('view');
@@ -539,7 +539,7 @@ async function viewCertificacionDetalle([id]) {
             </div>
             <div class="field">
               <label>Descripción</label>
-              <input name="descripcion" placeholder="Ej: Política de gobernanza de IA">
+              <input name="descripcion" placeholder="Ej: Política institucional de IA firmada por dirección">
             </div>
             <div class="field">
               <label>Archivo (máx 20MB)</label>
@@ -767,7 +767,7 @@ async function viewNuevoMiembro() {
           </div>
           <div>
             <div class="field"><label>Especialidades (separar con coma)</label>
-              <input name="especialidades" placeholder="Ej: gobernanza, datos, modelo"></div>
+              <input name="especialidades" placeholder="Ej: liderazgo, etica, estrategia"></div>
             <div class="field"><label>Países (separar con coma)</label>
               <input name="paises" value="Argentina"></div>
             <div class="field"><label>LinkedIn</label><input name="linkedin_url" placeholder="https://"></div>
