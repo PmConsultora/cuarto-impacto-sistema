@@ -8,12 +8,32 @@ const ESTADOS_EMPRESA = [
 ];
 const NIVELES = ['A1','A2','A3','A4','A5'];
 const TAMANIOS = ['micro','pequena','mediana'];
+// Los 14 principios del Manifiesto El Cuarto Impacto (base de toda certificación)
+const MANIFIESTO = {
+  I:    'La tecnología es la herramienta. Las personas, el motor.',
+  II:   'La responsabilidad digital es la nueva ética empresarial.',
+  III:  'La IA debe ampliar la inteligencia humana, no sustituirla.',
+  IV:   'Automatizar sin estrategia es institucionalizar el desorden.',
+  V:    'La adaptabilidad es la competencia estratégica del siglo.',
+  VI:   'La eficiencia debe estar al servicio del bienestar, no a su costa.',
+  VII:  'Las capacidades humanas son la tecnología más importante de la organización.',
+  VIII: 'El pensamiento profundo requiere protección activa.',
+  IX:   'Liderar la transformación tecnológica es una responsabilidad humana.',
+  X:    'La tecnología debe ampliar oportunidades, no profundizar desigualdades.',
+  XI:   'La transformación bien liderada fortalece la identidad organizacional.',
+  XII:  'El futuro es humanidad potenciada por tecnología.',
+  XIII: 'La confidencialidad de los datos es un derecho humano, no una opción técnica.',
+  XIV:  'La tecnología debe operar dentro de los límites del planeta, no a sus expensas.',
+};
+
+// Cada dimensión certifica el cumplimiento de un grupo de principios del Manifiesto.
+// Los 14 principios quedan cubiertos, sin solapamientos: ninguno queda sin verificar.
 const DIMENSIONES = [
-  { key: 'liderazgo',  label: 'Liderazgo y Cultura Digital' },
-  { key: 'etica',      label: 'Responsabilidad y Ética en IA' },
-  { key: 'estrategia', label: 'Estrategia y Procesos' },
-  { key: 'personas',   label: 'Personas y Bienestar' },
-  { key: 'impacto',    label: 'Impacto e Inclusión' },
+  { key: 'liderazgo',  label: 'Liderazgo y Cultura Digital',   icon: '🧭', principios: ['I','IX','XI','XII'] },
+  { key: 'etica',      label: 'Responsabilidad y Ética en IA',  icon: '⚖️', principios: ['II','III','XIII'] },
+  { key: 'estrategia', label: 'Estrategia y Procesos',          icon: '⚙️', principios: ['IV','V'] },
+  { key: 'personas',   label: 'Personas y Bienestar',           icon: '🌱', principios: ['VI','VII','VIII'] },
+  { key: 'impacto',    label: 'Impacto e Inclusión',            icon: '🌍', principios: ['X','XIV'] },
 ];
 
 const $main = () => document.getElementById('view');
@@ -493,6 +513,11 @@ async function viewCertificacionDetalle([id]) {
 
           ${cert.estado === 'en_evaluacion' || cert.estado === 'pagada' ? `
             <h4 style="font-size:0.9rem;color:var(--muted);margin-bottom:0.5rem">Emitir dictamen</h4>
+            <p style="font-size:0.72rem;color:var(--muted);background:var(--paper);border-left:3px solid var(--gold);padding:0.5rem 0.7rem;margin-bottom:0.75rem;line-height:1.5">
+              Al emitir dictamen declarás que evaluaste la conformidad de la empresa con los <strong>14 principios del Manifiesto</strong>.
+              <strong>Aprobado</strong> = los 14 acreditados. <strong>Con observaciones</strong> = brechas menores + plan de mejora.
+              <strong>Rechazado</strong> = uno o más principios sin evidencia o contradichos.
+            </p>
             <div class="field">
               <select id="dictamen-tipo">
                 <option value="aprobado">Aprobado</option>
@@ -552,12 +577,52 @@ async function viewCertificacionDetalle([id]) {
     </div>
 
     <div class="card">
+      <h3 style="margin-bottom:0.25rem">Conformidad con el Manifiesto</h3>
+      <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1rem">
+        El sello ${cert.nivel_solicitado} certifica el cumplimiento de los <strong>14 principios</strong> del Manifiesto El Cuarto Impacto.
+        Cada dimensión acredita los principios que se indican. Para nivel A5 (Referente) se exige evidencia validada y sistemática en las cinco dimensiones.
+      </p>
+      ${(() => {
+        const dims = evidenciasPorDim.map(d => {
+          const val = d.archivos.filter(a => a.validada).length;
+          const tot = d.archivos.length;
+          const estado = val > 0 ? 'ok' : (tot > 0 ? 'pend' : 'falta');
+          return { ...d, val, tot, estado };
+        });
+        const acreditados = dims.filter(d => d.estado === 'ok').reduce((n,d)=>n+d.principios.length,0);
+        const colores = { ok:'#0A9E6E', pend:'#c8920a', falta:'#b23b32' };
+        const iconos  = { ok:'✓', pend:'○', falta:'!' };
+        return `
+        <div style="margin-bottom:1rem;font-size:0.8rem;color:var(--muted)">
+          Principios acreditados con evidencia validada: <strong style="color:var(--navy-mid)">${acreditados} / 14</strong>
+        </div>
+        ${dims.map(d => `
+          <div style="display:flex;gap:0.75rem;align-items:flex-start;padding:0.6rem 0;border-top:1px solid var(--border)">
+            <span style="font-size:1.1rem;line-height:1.4">${d.icon}</span>
+            <div style="flex:1">
+              <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:0.5rem">
+                <strong style="font-size:0.88rem;color:var(--navy-mid)">${d.label}</strong>
+                <span style="font-size:0.75rem;font-weight:600;color:${colores[d.estado]}">
+                  ${iconos[d.estado]} ${d.estado === 'ok' ? `${d.val} validada${d.val>1?'s':''}` : (d.estado === 'pend' ? `${d.tot} sin validar` : 'sin evidencia')}
+                </span>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:0.35rem;margin-top:0.4rem">
+                ${d.principios.map(p => `<span title="${MANIFIESTO[p]}" style="font-size:0.68rem;padding:0.15rem 0.5rem;border-radius:999px;border:1px solid ${colores[d.estado]};color:${colores[d.estado]};cursor:help">Principio ${p}</span>`).join('')}
+              </div>
+            </div>
+          </div>
+        `).join('')}`;
+      })()}
+    </div>
+
+    <div class="card">
       <h3 style="margin-bottom:1rem">Evidencias (${evidencias.length})</h3>
       ${evidenciasPorDim.map(d => `
         <div style="margin-bottom:1.5rem">
-          <h4 style="font-family:var(--sans);font-size:0.85rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--navy-mid);margin-bottom:0.5rem">
-            ${d.label} <span style="color:var(--muted);text-transform:none;letter-spacing:0">(${d.archivos.length})</span>
+          <h4 style="font-family:var(--sans);font-size:0.85rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--navy-mid);margin-bottom:0.35rem">
+            ${d.icon || ''} ${d.label} <span style="color:var(--muted);text-transform:none;letter-spacing:0">(${d.archivos.length})</span>
           </h4>
+          <div style="font-size:0.72rem;color:var(--muted);margin-bottom:0.5rem">Acredita: ${d.principios.map(p=>`Principio ${p}`).join(' · ')}</div>
           ${d.archivos.length === 0
             ? `<div style="padding:0.5rem 1rem;color:var(--muted);font-size:0.85rem;font-style:italic">Sin evidencia cargada.</div>`
             : `<table style="font-size:0.85rem">

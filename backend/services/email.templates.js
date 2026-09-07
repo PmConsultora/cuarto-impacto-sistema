@@ -159,7 +159,9 @@ function selloEmitido({ nombre_empresa, nivel, codigo_verificacion, fecha_vencim
 
   const body = `
     <h1 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:32px;color:#0f2137;margin:0 0 16px;font-weight:600">¡Felicitaciones!</h1>
-    <p style="font-size:16px;color:#3a3530;margin:0 0 32px"><strong>${nombre_empresa}</strong> obtuvo oficialmente el sello <strong style="color:${info.color}">${nivel} · ${info.name}</strong>.</p>
+    <p style="font-size:16px;color:#3a3530;margin:0 0 24px"><strong>${nombre_empresa}</strong> obtuvo oficialmente el sello <strong style="color:${info.color}">${nivel} · ${info.name}</strong>.</p>
+
+    <p style="font-size:14px;color:#3a3530;margin:0 0 32px;background:#faf8f3;border-left:3px solid ${info.color};padding:12px 16px;line-height:1.6">Este sello certifica el cumplimiento verificado de los <strong>14 principios del Manifiesto El Cuarto Impacto</strong> en el nivel <strong>${nivel}</strong>, tras una evaluación independiente de evidencia en las cinco dimensiones.</p>
 
     <div style="text-align:center;background:#faf8f3;padding:32px;border-radius:8px;margin:24px 0;border:1px solid #ece5d5">
       <div style="background:${info.color};border-radius:50%;width:100px;height:100px;margin:0 auto 16px;line-height:100px;color:white;font-family:'Cormorant Garamond',Georgia,serif;font-size:42px;font-weight:600">${nivel}</div>
